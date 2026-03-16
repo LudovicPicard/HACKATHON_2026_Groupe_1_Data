@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+bin/
+lib/
+include/
+.env
+.spyderproject
+.spyproject
+.vscode/
+.idea/
+*.csv
+*.json
+!Données_Climatologiques_swagger.json
+!stations_cibles.csv
+!observations_quotidiennes.csv
+!observations_mensuelles.csv
+# We might want to keep some CSVs if they are small, but usually data is ignored.
+# User mentioned pushing data, so I'll be careful.
+# Actually, the repo name has "Data" in it, so maybe they WANT the CSVs.
+# I will allow CSVs for now since it's a "Data" repo.
