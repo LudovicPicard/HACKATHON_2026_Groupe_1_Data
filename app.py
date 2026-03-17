@@ -41,6 +41,9 @@ def get_cities():
     df = load_data(GOLD_DATA_PATH)
     if df is not None:
         cities = sorted(df['VILLE'].unique().tolist())
+        if 'France' in cities:
+            cities.remove('France')
+            cities = ['France'] + cities
         return jsonify(cities)
     return jsonify({"error": "Data not found"}), 404
 
@@ -89,8 +92,26 @@ def get_display_name(city):
     return CITY_TO_DEPT.get(city, city)
 
 # Pre-load data once at startup
-df_gold_global = load_data(GOLD_DATA_PATH)
-df_proj_global = load_data(PROJECTION_DATA_PATH)
+def get_france_aggregation(df):
+    if df is None: return None
+    import numpy as np
+    
+    # Identify numeric columns for aggregation
+    cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    if 'ANNEE' in cols: cols.remove('ANNEE')
+    
+    # Determine grouping columns (handle historical vs projections)
+    group_cols = ['ANNEE']
+    if 'MODEL_IA' in df.columns: group_cols.append('MODEL_IA')
+    if 'FRAME' in df.columns: group_cols.append('FRAME')
+    
+    france_df = df.groupby(group_cols)[cols].mean().reset_index()
+    france_df['VILLE'] = 'France'
+    
+    return pd.concat([df, france_df], ignore_index=True)
+
+df_gold_global = get_france_aggregation(load_data(GOLD_DATA_PATH))
+df_proj_global = get_france_aggregation(load_data(PROJECTION_DATA_PATH))
 
 @app.route('/api/chat', methods=['POST'])
 def chat():

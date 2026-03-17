@@ -127,7 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "St etienne": "Loire (42)",
         "Strasbourg": "Bas-Rhin (67)",
         "Toulon": "Var (83)",
-        "Toulouse": "Haute-Garonne (31)"
+        "Toulouse": "Haute-Garonne (31)",
+        "France": "🇫🇷 France (Moyenne)"
     };
 
     function getDisplayName(city) {
@@ -147,6 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
         citySelect.innerHTML = '<option value="">Sélectionnez un département...</option>' + 
                                cities.map(city => `<option value="${city}">${getDisplayName(city)}</option>`).join('');
         allData = data;
+        if (data.length > 0) {
+            currentCity = "France";
+            citySelect.value = "France";
+            updateDashboard("France");
+            highlightMarker("France");
+        }
         projectionData = projections;
         performanceData = performance;
         igtData = igt;
@@ -318,9 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function highlightMarker(cityName) {
         Object.keys(markers).forEach(c => {
             const m = markers[c];
+            const isActive = (c === cityName);
             m.setStyle({
-                fillColor: c === cityName ? "#fbbf24" : "#00d2ff",
-                radius: c === cityName ? 12 : 8
+                fillColor: isActive ? "#fbbf24" : "#00d2ff",
+                radius: isActive ? 12 : 8
             });
         });
     }
@@ -348,8 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 { l: "🚜 Agriculture", v: cityIgt.Agriculture }
             ].sort((a,b) => b.v - a.v);
 
+            const icon = (city === "France") ? "fa-solid fa-flag" : "fa-solid fa-industry";
             panel.innerHTML = `
-                <h3><i class="fa-solid fa-industry"></i> ${getDisplayName(city)}</h3>
+                <h3><i class="${icon}"></i> ${getDisplayName(city)}</h3>
                 <div class="igt-stats">
                     ${sectors.slice(0, 3).map(s => `
                         <div class="igt-stat-row">
