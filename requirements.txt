@@ -6,3 +6,8 @@ scipy
 requests
 ipykernel
 jupyter
+flask
+mistralai
+pyarrow
+scikit-learn
+prophet

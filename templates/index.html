@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClimaSphere | Intelligence Climatique & Écologie</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <!-- Atmospheric Background Elements -->
+    <div class="sun-container">
+        <div class="sun-body"></div>
+    </div>
+
+    <div class="container">
+        <header class="glass-nav sticky-header">
+            <div class="logo">
+                <h1>Clima<span>Sphere</span></h1>
+                <p><i class="fa-solid fa-leaf"></i> Intelligence Climatique & Écologie</p>
+            </div>
+            
+            <div class="header-simulation">
+                <div class="slider-wrapper compact">
+                    <span id="rangeLabel" class="year-accent">2026</span>
+                    <div class="dual-range-container">
+                        <div class="slider-track"></div>
+                        <input type="range" id="rangeStart" min="1850" max="2026" value="1990" class="premium-slider slider-multi">
+                        <input type="range" id="rangeEnd" min="1850" max="2026" value="2026" class="premium-slider slider-multi">
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <select id="citySelect" class="glass-select">
+                    <option value="">Sélectionnez un département...</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <section class="stats-grid">
+                <div class="glass-card stat-card" id="cardTM">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-temperature-half"></i>
+                        <h3>Temp. Moyenne</h3>
+                    </div>
+                    <div class="stat-value" id="tm_val">-- °C</div>
+                    <div class="gauge-container">
+                        <svg class="gauge" viewBox="0 0 100 50">
+                            <path class="gauge-bg" d="M 10 45 A 35 35 0 0 1 90 45" fill="none" />
+                            <path class="gauge-fill" id="tm_gauge" d="M 10 45 A 35 35 0 0 1 90 45" fill="none" />
+                        </svg>
+                    </div>
+                    <p class="stat-desc">Moyenne annuelle filtrée</p>
+                </div>
+                
+                <div class="glass-card stat-card" id="cardCanicule">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-sun-plant-wilt"></i>
+                        <h3>Canicule</h3>
+                    </div>
+                    <div class="stat-value">--</div>
+                    <p class="stat-desc">Jours > 35°C</p>
+                </div>
+
+                <div class="glass-card stat-card" id="cardTropical">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-moon"></i>
+                        <h3>Nuits Tropicales</h3>
+                    </div>
+                    <div class="stat-value">--</div>
+                    <p class="stat-desc">Nuits > 20°C</p>
+                </div>
+
+                <div class="glass-card stat-card" id="cardGel">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-snowflake"></i>
+                        <h3>Jours de Gel</h3>
+                    </div>
+                    <div class="stat-value">--</div>
+                    <p class="stat-desc">Température < 0°C</p>
+                </div>
+
+                <div class="glass-card stat-card" id="cardAnom">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <h3>Anomalie Globale</h3>
+                    </div>
+                    <div class="stat-value" id="anom_val">--.-°C</div>
+                    <div class="gauge-container">
+                        <svg class="gauge" viewBox="0 0 100 50">
+                            <path class="gauge-bg" d="M 10 45 A 35 35 0 0 1 90 45" fill="none" />
+                            <path class="gauge-fill" id="anom_gauge" d="M 10 45 A 35 35 0 0 1 90 45" fill="none" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="glass-card stat-card" id="cardRR">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-cloud-showers-heavy"></i>
+                        <h3>Pluie</h3>
+                    </div>
+                    <div class="stat-value">-- mm</div>
+                    <p class="stat-desc">Cumul annuel</p>
+                </div>
+
+                <div class="glass-card stat-card" id="cardDrySpell">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-droplet-slash"></i>
+                        <h3>Séquence Sèche</h3>
+                    </div>
+                    <div class="stat-value">--</div>
+                    <p class="stat-desc">Max jours consécutifs</p>
+                </div>
+
+                <div class="glass-card stat-card" id="cardHotSeason">
+                    <div class="card-icon-header">
+                        <i class="fa-solid fa-sun"></i>
+                        <h3>Saison Chaude</h3>
+                    </div>
+                    <div class="stat-value">--</div>
+                    <p class="stat-desc">Jours > 25°C</p>
+                </div>
+            </section>
+
+            <section class="map-row">
+                <div class="glass-card map-container">
+                    <div id="map"></div>
+                    <div id="map-info-panel" class="map-info-panel hidden">
+                        <!-- Content injected via JS -->
+                    </div>
+                    <div class="map-layer-toggle">
+                        <button id="showMeteo" class="toggle-btn active" title="Stations Météo">
+                            <i class="fa-solid fa-cloud-sun"></i>
+                        </button>
+                        <button id="showEmissions" class="toggle-btn" title="Émissions Territoriales (IGT)">
+                            <i class="fa-solid fa-industry"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Charts -->
+            <section class="charts-row">
+                <div class="glass-card main-chart-container">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Évolution Historique</h2>
+                    </div>
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+                <div class="glass-card side-chart-container">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-column"></i> Anomalies Globale</h2>
+                    </div>
+                    <canvas id="anomalyChart"></canvas>
+                </div>
+            </section>
+
+            <section class="charts-row">
+                <div class="glass-card side-chart-container">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-bar"></i> Extrêmes</h2>
+                    </div>
+                    <canvas id="extremeDaysChart"></canvas>
+                </div>
+            </section>
+
+            <section class="charts-row">
+                <div class="glass-card full-chart-container">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-pie"></i> Émissions par Secteur (France - CITEPA)</h2>
+                    </div>
+                    <canvas id="ghgSectorChart"></canvas>
+                </div>
+            </section>
+
+
+            <section class="charts-row full">
+                 <div class="glass-card full-chart-container">
+                    <div class="card-header">
+                        <div class="title-group">
+                            <h2><i class="fa-solid fa-earth-europe"></i> Trajectoires d'Échauffement (2030 - 2100)</h2>
+                            <p class="card-subtitle">Augmentation de la température (°C) selon les scénarios GIEC</p>
+                        </div>
+                        <div class="chart-controls">
+                            <select id="modelSelect" class="glass-select small-select">
+                                <option value="Prophet" selected>IA: Prophet</option>
+                                <option value="Linear">IA: Linéaire</option>
+                            </select>
+                            <select id="frameSelect" class="glass-select small-select">
+                                <option value="RCP" selected>Frame: RCP</option>
+                                <option value="SSP">Frame: SSP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <canvas id="projectionsChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Performance des Modèles (Step 3 Rigor) -->
+            <section class="performance-section">
+                <div class="glass-card performance-card">
+                    <div class="card-header">
+                        <div class="title-group">
+                            <h2><i class="fa-solid fa-microchip"></i> Rigueur Scientifique & Précision IA</h2>
+                            <p class="card-subtitle">Scores de performance des modèles sur les données historiques (Backtesting 2020-2025)</p>
+                        </div>
+                    </div>
+                    <div class="performance-table-container">
+                        <table class="performance-table" id="performanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Indicateur</th>
+                                    <th>Modèle</th>
+                                    <th>RMSE</th>
+                                    <th>MAE</th>
+                                    <th>MAPE (%)</th>
+                                    <th>Précision</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="performance-footer">
+                        <p><i class="fa-solid fa-info-circle"></i> RMSE = Erreur Quadratique Moyenne | MAE = Erreur Absolue Moyenne | MAPE = Pourcentage d'Erreur Moyen</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Méthodologie (Step 1 Justification) -->
+            <section id="methodology" class="methodology-section">
+                <div class="glass-card methodology-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-book-open"></i> Justification Territoriale & Méthodologie</h2>
+                    </div>
+                    <div class="methodology-content">
+                        <div class="method-box">
+                            <h3><i class="fa-solid fa-map-location-dot"></i> Choix des Territoires</h3>
+                            <p>Nous avons sélectionné 6 villes représentatives de la <b>diversité climatique française</b> :</p>
+                            <ul>
+                                <li><b>Bordeaux & Nantes</b> : Façade Atlantique (Oceanique)</li>
+                                <li><b>Paris & Rennes</b> : Climat tempéré / Bassin Parisien</li>
+                                <li><b>Lyon</b> : Influence continentale et alpine</li>
+                                <li><b>Marseille</b> : Zone Méditerranéenne (forte vulnérabilité aux canicules)</li>
+                            </ul>
+                        </div>
+                        <div class="method-box">
+                            <h3><i class="fa-solid fa-database"></i> Sources des Données</h3>
+                            <p>Nos analyses reposent sur des sources de données ouvertes et certifiées :</p>
+                            <ul>
+                                <li><b>Open-Meteo Archive API</b> : Données historiques quotidiennes depuis 1945.</li>
+                                <li><b>GIEC (IPCC)</b> : Scénarios RCP 2.6, 4.5 et 8.5 pour les trajectoires futures.</li>
+                                <li><b>CITEPA / INSEE</b> : Émissions de GES et pressions humaines par secteur.</li>
+                                <li><b>Prophet (Meta)</b> : Modélisation additive pour les prédictions court terme.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions Citoyennes (Step 5) -->
+            <section id="agir" class="actions-section">
+                <div class="glass-card advice-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-leaf"></i> Agir pour le Territoire</h2>
+                    </div>
+                    <div id="adviceContainer" class="advice-grid">
+                        <!-- Dynamic advice will be injected here -->
+                    </div>
+                    <div class="advice-footer">
+                        <p>Aligné avec le PNACC 3 & Earth Action Report 2025</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Groupe 1 Data | Hackathon Sup de Vinci | <i class="fa-solid fa-seedling"></i> Ensemble pour le climat</p>
+        </footer>
+    </div>
+
+    <!-- ClimaBot Chat Interface -->
+    <div id="chat-button" class="chat-launcher" title="Besoin d'aide ?">
+        <i class="fa-solid fa-robot"></i>
+    </div>
+
+    <div id="chat-window" class="chat-container glass-card hidden">
+        <div class="chat-header">
+            <h3><i class="fa-solid fa-robot"></i> ClimaBot</h3>
+            <button id="close-chat" class="clear-btn"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="message bot">Bonjour ! Je suis ClimaBot. Comment puis-je vous aider aujourd'hui ?</div>
+        </div>
+        <div id="chat-suggestions" class="chat-suggestions">
+            <button class="suggest-btn">Paris 2050 ?</button>
+            <button class="suggest-btn">CO2 Lyon</button>
+            <button class="suggest-btn">Marseille 2100</button>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Posez votre question...">
+            <button id="send-chat" class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
