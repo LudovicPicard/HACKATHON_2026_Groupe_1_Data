@@ -22,3 +22,10 @@ include/
 # User mentioned pushing data, so I'll be careful.
 # Actually, the repo name has "Data" in it, so maybe they WANT the CSVs.
 # I will allow CSVs for now since it's a "Data" repo.
+.venv/
+.vscode/
+Datas/*
+!Datas/france_climat_complet.parquet
+!Datas/silver_climate_data.parquet
+!Datas/gold_indicators_region.parquet
+!Datas/gold_indicators_departement.parquet
