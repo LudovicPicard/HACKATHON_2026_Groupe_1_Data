@@ -12,7 +12,7 @@ GOLD_DATA_PATH = "data_climat/gold_climate_indicators.parquet"
 PROJECTION_DATA_PATH = "data_climat/gold_projections.parquet"
 PERF_DATA_PATH = "data_climat/model_performance.parquet"
 IGT_DATA_PATH = "data_climat/igt_emissions.json"
-SEA_TEMP_DATA_PATH = "data_climat/gold_sea_temperature.parquet"  # Force reload
+SEA_TEMP_DATA_PATH = "data_climat/gold_sea_temperature.parquet"  # Force reload 2
 
 
 def load_data(path):

@@ -1334,21 +1334,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const isFranceVal = isFrance(currentCity);
         const isDom = selectedDeptCode && (selectedDeptCode.startsWith('97') || selectedDeptCode.startsWith('98'));
 
+        // Helper to retrieve display names dynamically
+        function getDeptNameByCode(code) {
+            if (code === "FRANCE") return "France (Moyenne)";
+            const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+            if (fullName) return fullName;
+            
+            const fallbacks = {
+                "2A": "Corse-du-Sud (2A)",
+                "2B": "Haute-Corse (2B)"
+            };
+            return fallbacks[code] || `Département ${code}`;
+        }
+
+        // Sort departments numerically, placing Corsica (2A/2B) at code 20 position
+        function getSortKey(code) {
+            if (code === '2A') return 20.1;
+            if (code === '2B') return 20.2;
+            return parseFloat(code) || 999;
+        }
+
+        const uniqueCodes = [...new Set(seaTempData.map(d => String(d.DEPARTEMENT)))]
+            .filter(code => code !== "FRANCE")
+            .sort((a, b) => getSortKey(a) - getSortKey(b));
+
         const coastalDepts = [
             { code: "FRANCE", name: "France (Moyenne)" },
-            { code: "14", name: "Calvados (14)" },
-            { code: "22", name: "Côtes-d'Armor (22)" },
-            { code: "44", name: "Loire-Atlantique (44)" },
-            { code: "56", name: "Morbihan (56)" },
-            { code: "33", name: "Gironde (33)" },
-            { code: "40", name: "Landes (40)" },
-            { code: "17", name: "Charente-Maritime (17)" },
-            { code: "11", name: "Aude (11)" },
-            { code: "34", name: "Hérault (34)" },
-            { code: "13", name: "Bouches-du-Rhône (13)" },
-            { code: "83", name: "Var (83)" },
-            { code: "2A", name: "Corse-du-Sud (2A)" },
-            { code: "2B", name: "Haute-Corse (2B)" }
+            ...uniqueCodes.map(code => ({ code: code, name: getDeptNameByCode(code) }))
         ];
 
         let html = '';
