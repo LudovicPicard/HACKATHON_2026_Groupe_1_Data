@@ -7,14 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFrame = "RCP";
     
     // Charts instances
-    let evolutionChart, extremeDaysChart, anomalyChart, projectionsChart;
+    let evolutionChart, extremeDaysChart, anomalyChart, projectionsChart, seaTempChart;
     let ghgSectorChart;
     let map, markers = {}, deforLayer = null;
     let simulationYear = 2026;
     let performanceData = [];
     let igtData = {};
     let deforData = {};
-    let meteoLayer, igtLayer;
+    let seaTempData = [];
+    let meteoLayer, igtLayer, seaTempLayer, neutralLandLayer;
     let currentLayer = "meteo";
     let currentProfile = "citoyen"; // "citoyen" or "collectivite"
     let simulationMode = "single"; // "single" or "range"
@@ -125,8 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/performance').then(res => res.json()),
         fetch('/api/igt').then(res => res.json()),
         fetch('/api/departments').then(res => res.json()),
-        fetch('/static/js/departements_min.geojson').then(res => res.json())
-    ]).then(([deforRaw, cities, data, projections, performance, igt, departments, geojsonData]) => {
+        fetch('/static/js/departements_min.geojson').then(res => res.json()),
+        fetch('/api/sea-temperature').then(res => res.json())
+    ]).then(([deforRaw, cities, data, projections, performance, igt, departments, geojsonData, seaTempRaw]) => {
         // Transform deforestation data into lookup by department name
         const deforLookup = {};
         deforRaw.forEach(item => {
@@ -136,8 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Assign to global variable for later use
         window.deforData = deforLookup;
-            // also assign to local variable for convenience
-            deforData = deforLookup;
+        // also assign to local variable for convenience
+        deforData = deforLookup;
+        seaTempData = seaTempRaw;
 
         // Dynamically populate coordinates and display names from the backend mapping
         Object.keys(departments).forEach(code => {
@@ -176,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             citySelect.value = "France (sans Outre-mer)";
             initProfileSwitcher();
             updateProfileContent(); 
+            initOnboardingModal();
             highlightMarker("France (sans Outre-mer)");
             showMapInfo("France (sans Outre-mer)", currentLayer);
         }
@@ -206,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFrame = e.target.value;
         updateDashboard(currentCity);
     });
+
 
     // --- Integrated Range Slider Logic ---
     const rangeStart = document.getElementById('rangeStart');
@@ -260,6 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('showMeteo').addEventListener('click', () => switchMapLayer('meteo'));
     document.getElementById('showEmissions').addEventListener('click', () => switchMapLayer('igt'));
     document.getElementById('showDeforMap').addEventListener('click', () => switchMapLayer('defor'));
+    document.getElementById('showSeaTemp').addEventListener('click', () => switchMapLayer('sea'));
+
 
     function updateLegend() {
         const legend = document.getElementById('map-legend');
@@ -283,12 +290,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>> 8.0M (Élevé)</span>
             `;
             legend.classList.remove('hidden');
-        } else {
+        } else if (currentLayer === 'defor') {
             legend.querySelector('.legend-title').textContent = "Déforestation (ha)";
             legend.querySelector('.scale-bar').style.background = "linear-gradient(to right, #4ade80, #ef4444)";
             legend.querySelector('.legend-labels').innerHTML = `
                 <span>0</span>
                 <span>> 8000</span>
+            `;
+            legend.classList.remove('hidden');
+        } else if (currentLayer === 'sea') {
+            legend.querySelector('.legend-title').textContent = "Température de la Mer (°C)";
+            legend.querySelector('.scale-bar').style.background = "linear-gradient(to right, #3b82f6, #2dd4bf, #10b981, #eab308, #ef4444)";
+            legend.querySelector('.legend-labels').innerHTML = `
+                <span>< 11°C</span>
+                <span>16°C</span>
+                <span>> 21°C</span>
             `;
             legend.classList.remove('hidden');
         }
@@ -299,23 +315,29 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('showMeteo').classList.toggle('active', layer === 'meteo');
         document.getElementById('showEmissions').classList.toggle('active', layer === 'igt');
         document.getElementById('showDeforMap').classList.toggle('active', layer === 'defor');
+        document.getElementById('showSeaTemp').classList.toggle('active', layer === 'sea');
         const panel = document.getElementById('map-info-panel');
         const isPanelVisible = panel && !panel.classList.contains('hidden');
         updateLegend();
-        if (layer === 'meteo') {
-            map.removeLayer(igtLayer);
-            if (deforLayer) map.removeLayer(deforLayer);
+        
+        // Remove all layers first
+        if (meteoLayer && map.hasLayer(meteoLayer)) map.removeLayer(meteoLayer);
+        if (igtLayer && map.hasLayer(igtLayer)) map.removeLayer(igtLayer);
+        if (deforLayer && map.hasLayer(deforLayer)) map.removeLayer(deforLayer);
+        if (seaTempLayer && map.hasLayer(seaTempLayer)) map.removeLayer(seaTempLayer);
+        
+        if (layer === 'meteo' && meteoLayer) {
             meteoLayer.addTo(map);
             updateMapStyles();
-        } else if (layer === 'igt') {
-            map.removeLayer(meteoLayer);
-            if (deforLayer) map.removeLayer(deforLayer);
+        } else if (layer === 'igt' && igtLayer) {
             igtLayer.addTo(map);
-        } else if (layer === 'defor') {
-            map.removeLayer(meteoLayer);
-            map.removeLayer(igtLayer);
-            if (deforLayer) deforLayer.addTo(map);
+        } else if (layer === 'defor' && deforLayer) {
+            deforLayer.addTo(map);
+        } else if (layer === 'sea' && seaTempLayer) {
+            seaTempLayer.addTo(map);
+            updateMapStyles();
         }
+        
         if (currentCity) {
             highlightMarker(currentCity);
             if (isPanelVisible) {
@@ -364,19 +386,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     function updateMapStyles() {
-        if (!meteoLayer || currentLayer !== 'meteo') return;
-        meteoLayer.eachLayer(function(layer) {
-            if (layer.feature && layer.feature.properties) {
-                const code = mapGeoJsonCodeToDbCode(layer.feature.properties.code);
-                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
-                if (fullName) {
-                    const temp = getTempForCity(fullName);
+        if (currentLayer === 'meteo' && meteoLayer) {
+            meteoLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const code = mapGeoJsonCodeToDbCode(layer.feature.properties.code);
+                    const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                    if (fullName) {
+                        const temp = getTempForCity(fullName);
+                        layer.setStyle({
+                            fillColor: getMeteoColor(temp)
+                        });
+                    }
+                }
+            });
+        } else if (currentLayer === 'sea' && seaTempLayer) {
+            seaTempLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const code = layer.feature.properties.code;
+                    const temp = getSeaTempForDept(code);
+                    const hasData = temp !== null;
                     layer.setStyle({
-                        fillColor: getMeteoColor(temp)
+                        fillColor: hasData ? getSeaTempColor(temp) : 'rgba(122, 122, 122, 0.15)'
                     });
                 }
-            }
-        });
+            });
+        }
+    }
+
+    function getSeaTempForDept(deptCode) {
+        if (!seaTempData || seaTempData.length === 0) return null;
+        
+        let startYear = simulationMode === "single" ? 1973 : rangeStartYear;
+        let endYear = simulationMode === "single" ? simulationYear : rangeEndYear;
+        
+        if (startYear < 1973) startYear = 1973;
+        if (endYear > 2026) endYear = 2026;
+        if (endYear < startYear) endYear = startYear;
+        
+        const filtered = seaTempData.filter(d => 
+            String(d.DEPARTEMENT) === String(deptCode) && 
+            d.ANNEE >= startYear && 
+            d.ANNEE <= endYear
+        );
+        
+        if (filtered.length === 0) return null;
+        const sum = filtered.reduce((s, d) => s + d.TEMPERATURE, 0);
+        return sum / filtered.length;
+    }
+
+    function getSeaTempForZone(zoneName) {
+        if (!seaTempData || seaTempData.length === 0) return null;
+        
+        let startYear = simulationMode === "single" ? 1973 : rangeStartYear;
+        let endYear = simulationMode === "single" ? simulationYear : rangeEndYear;
+        
+        if (startYear < 1973) startYear = 1973;
+        if (endYear > 2026) endYear = 2026;
+        if (endYear < startYear) endYear = startYear;
+        
+        const filtered = seaTempData.filter(d => 
+            d.ZONE_MARINE === zoneName && 
+            d.ANNEE >= startYear && 
+            d.ANNEE <= endYear
+        );
+        
+        if (filtered.length === 0) return null;
+        const sum = filtered.reduce((s, d) => s + d.TEMPERATURE, 0);
+        return sum / filtered.length;
+    }
+
+    function getSeaTempColor(temp) {
+        if (temp === null || temp === undefined) return 'rgba(122, 122, 122, 0.15)';
+        const minT = 10;
+        const maxT = 22;
+        const ratio = Math.min(1, Math.max(0, (temp - minT) / (maxT - minT)));
+        const hue = (1 - ratio) * 240; // 240 (blue) to 0 (red)
+        return `hsl(${hue}, 80%, 45%)`;
     }
 
     function initMap(cities, geojsonData) {
@@ -557,7 +642,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        // Removed duplicate igtLayer definition; original defined earlier.
+
+        // 4. Sea Temperature Layer as GeoJSON Choropleth Map (only coastal departments colored, others grayed)
+        seaTempLayer = L.geoJSON(geojsonData, {
+            style: function(feature) {
+                const code = feature.properties.code;
+                const temp = getSeaTempForDept(code);
+                const hasData = temp !== null;
+                
+                return {
+                    fillColor: hasData ? getSeaTempColor(temp) : 'rgba(122, 122, 122, 0.15)',
+                    weight: 1.5,
+                    opacity: 0.8,
+                    color: hasData ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)',
+                    fillOpacity: hasData ? 0.65 : 0.2
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const code = feature.properties.code;
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                const temp = getSeaTempForDept(code);
+                
+                if (fullName) {
+                    if (temp !== null) {
+                        layer.bindPopup(`<b>${fullName}</b><br>Temp. de la mer: <b>${temp.toFixed(2)} °C</b>`);
+                    } else {
+                        layer.bindPopup(`<b>${fullName}</b><br>(Pas de données maritimes directes)`);
+                    }
+                    
+                    layer.on('click', () => {
+                        currentCity = fullName;
+                        citySelect.value = fullName;
+                        updateDashboard(fullName);
+                        highlightMarker(fullName);
+                        showMapInfo(fullName, 'sea');
+                    });
+                }
+                
+                layer.on('mouseover', function(e) {
+                    this.setStyle({
+                        weight: 2.5,
+                        color: '#fff',
+                        fillOpacity: temp !== null ? 0.85 : 0.3
+                    });
+                });
+                
+                layer.on('mouseout', function(e) {
+                    seaTempLayer.resetStyle(this);
+                    if (fullName === currentCity) {
+                        this.setStyle({
+                            weight: 3,
+                            color: "#fbbf24",
+                            fillOpacity: temp !== null ? 0.85 : 0.3
+                        });
+                    }
+                });
+            }
+        });
 
         if (cities.length > 0) highlightMarker(currentCity);
         updateLegend();
@@ -611,6 +752,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         weight: isActive ? 3 : 1.5,
                         color: isActive ? "#fbbf24" : 'rgba(255, 255, 255, 0.25)',
                         fillOpacity: isActive ? 0.75 : 0.55
+                    });
+                    if (isActive && typeof layer.bringToFront === 'function') {
+                        layer.bringToFront();
+                    }
+                }
+            });
+        } else if (seaTempLayer && currentLayer === 'sea') {
+            seaTempLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const isActive = isCodeMatch(layer.feature.properties.code, activeCode);
+                    const code = layer.feature.properties.code;
+                    const temp = getSeaTempForDept(code);
+                    const hasData = temp !== null;
+                    layer.setStyle({
+                        weight: isActive ? 3 : 1.5,
+                        color: isActive ? "#fbbf24" : (hasData ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.15)'),
+                        fillOpacity: isActive ? 0.85 : (hasData ? 0.65 : 0.2)
                     });
                     if (isActive && typeof layer.bringToFront === 'function') {
                         layer.bringToFront();
@@ -699,6 +857,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="igt-popup-footer" style="color: var(--text-muted)">Source Global Forest Watch (2025)</div>
             `;
+        } else if (mode === 'sea') {
+            const match = city.match(/\((\d{2,3}|2A|2B)\)/);
+            const deptCode = match ? match[1] : null;
+            const temp = deptCode ? getSeaTempForDept(deptCode) : null;
+            
+            if (temp === null) {
+                panel.innerHTML = `
+                    ${closeBtnHtml}
+                    <h3><i class="fa-solid fa-water"></i> ${getDisplayName(city)}</h3>
+                    <p style="font-size:0.85rem; margin-top: 15px; color: var(--text-secondary); line-height: 1.5;">Ce département (<b>${getDisplayName(city)}</b>) n'est pas sur le littoral ou ne dispose pas de données de température de mer dans le fichier.<br><br>Sélectionnez un département côtier coloré sur la carte.</p>
+                `;
+            } else {
+                panel.innerHTML = `
+                    ${closeBtnHtml}
+                    <h3><i class="fa-solid fa-water"></i> ${getDisplayName(city)}</h3>
+                    <div class="igt-stats">
+                        <div class="igt-stat-row">
+                            <span class="igt-label">🌡️ Temp. Mer (SST)</span>
+                            <span class="igt-val" style="color: var(--accent-blue)">${temp.toFixed(2)} °C</span>
+                        </div>
+                    </div>
+                    <div class="igt-popup-footer" style="color: var(--text-muted)">Historique de température côtière (${simulationMode === "single" ? simulationYear : rangeStartYear + "-" + rangeEndYear})</div>
+                `;
+            }
         } else {
             let cityIgt = igtData[city];
             if (isFrance(city)) {
@@ -760,6 +942,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateDashboard(city) {
+        // Coastal department auto-selection for marine zone
+        if (city) {
+            const match = city.match(/\((\d{2,3}|2A|2B)\)/);
+            const deptCode = match ? match[1] : null;
+            if (deptCode) {
+                const DEPT_TO_SEA_ZONE = {
+                    "13": "Méditerranée Occidentale",
+                    "06": "Méditerranée Occidentale",
+                    "83": "Méditerranée Occidentale",
+                    "30": "Méditerranée Occidentale",
+                    "34": "Méditerranée Occidentale",
+                    "20": "Méditerranée Occidentale",
+                    "2A": "Méditerranée Occidentale",
+                    "2B": "Méditerranée Occidentale",
+                    "33": "Golfe de Gascogne Sud",
+                    "40": "Golfe de Gascogne Sud",
+                    "64": "Golfe de Gascogne Sud",
+                    "85": "Golfe de Gascogne Sud",
+                    "17": "Golfe de Gascogne Sud",
+                    "44": "Golfe de Gascogne Nord",
+                    "56": "Golfe de Gascogne Nord",
+                    "29": "Mer Celtique",
+                    "22": "Mer Celtique",
+                    "35": "Mer Celtique",
+                    "76": "Manche / Mer du Nord",
+                    "80": "Manche / Mer du Nord",
+                    "62": "Manche / Mer du Nord",
+                    "59": "Manche / Mer du Nord",
+                    "14": "Manche / Mer du Nord",
+                    "50": "Manche / Mer du Nord"
+                };
+                if (DEPT_TO_SEA_ZONE[deptCode]) {
+                    const zoneSelect = document.getElementById('seaZoneSelect');
+                    if (zoneSelect) {
+                        zoneSelect.value = DEPT_TO_SEA_ZONE[deptCode];
+                    }
+                }
+            }
+        }
+
         // Filter historical and current data
         const cityData = allData.filter(d => d.VILLE === city);
         
@@ -883,6 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update New Charts (Step 2)
         renderGHGSectorChart();
+        renderSeaTempTable();
 
         // Update Map Styles dynamically
         updateMapStyles();
@@ -1074,7 +1297,65 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
+    function renderSeaTempTable() {
+        const table = document.getElementById('seaTempTable');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        if (!seaTempData || seaTempData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px; color: var(--text-muted);">Données indisponibles</td></tr>';
+            return;
+        }
+
+        const coastalDepts = [
+            { code: "14", name: "Calvados (14)" },
+            { code: "22", name: "Côtes-d'Armor (22)" },
+            { code: "44", name: "Loire-Atlantique (44)" },
+            { code: "56", name: "Morbihan (56)" },
+            { code: "33", name: "Gironde (33)" },
+            { code: "40", name: "Landes (40)" },
+            { code: "17", name: "Charente-Maritime (17)" },
+            { code: "11", name: "Aude (11)" },
+            { code: "34", name: "Hérault (34)" },
+            { code: "13", name: "Bouches-du-Rhône (13)" },
+            { code: "83", name: "Var (83)" },
+            { code: "2A", name: "Corse-du-Sud (2A)" },
+            { code: "2B", name: "Haute-Corse (2B)" }
+        ];
+
+        let html = '';
+        coastalDepts.forEach(dept => {
+            const currentTemp = getSeaTempForDept(dept.code);
+            
+            // Get baseline temperature (earliest year available, e.g. 1988)
+            const baselineData = seaTempData.filter(d => String(d.DEPARTEMENT) === String(dept.code) && d.TEMPERATURE !== null).sort((a,b) => a.ANNEE - b.ANNEE);
+            const baselineTemp = baselineData.length > 0 ? baselineData[0].TEMPERATURE : null;
+            
+            const tempStr = currentTemp ? `<strong>${currentTemp.toFixed(2)} °C</strong>` : '--';
+            
+            let diffHtml = '<span style="color: var(--text-muted)">--</span>';
+            if (currentTemp && baselineTemp) {
+                const diff = currentTemp - baselineTemp;
+                const color = diff > 0 ? '#ef4444' : '#3b82f6';
+                const sign = diff > 0 ? '+' : '';
+                const arrow = diff > 0 ? '▲' : '▼';
+                diffHtml = `<span style="color: ${color}; font-weight: 700; font-family: var(--font-heading);">${sign}${diff.toFixed(2)} °C ${arrow}</span>`;
+            }
+
+            html += `
+                <tr style="border-bottom: 1px solid var(--glass-border); transition: background-color 0.2s;">
+                    <td style="padding: 12px 8px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-water" style="color: var(--accent-blue); margin-right: 8px; font-size: 0.8rem;"></i>${dept.name}</td>
+                    <td style="padding: 12px 8px; color: var(--text-secondary);">${tempStr}</td>
+                    <td style="padding: 12px 8px;">${diffHtml}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
     function renderAnomalyChart(data) {
         const canvas = document.getElementById('anomalyChart');
         if (!canvas) return;
@@ -1768,7 +2049,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "performance-table": "Scores d'évaluation statistique montrant l'écart moyen entre les calculs de nos modèles d'IA et les mesures historiques réelles.",
             "methodology-section": "Explications sur la provenance de nos données (Open-Meteo, Citepa, GIEC) et les critères géographiques de notre étude.",
             "actions-section": "Suggestions concrètes d'initiatives à adopter à l'échelle individuelle ou locale pour lutter contre le dérèglement.",
-            "climabot-chat": "Posez vos questions à ClimaBot pour obtenir des chiffres météo locaux précis ou des conseils d'actions écologiques."
+            "climabot-chat": "Posez vos questions à ClimaBot pour obtenir des chiffres météo locaux précis ou des conseils d'actions écologiques.",
+            "chart-sea-temp": "Suivi annuel de la température de surface de la mer (SST) dans les différentes façades maritimes françaises depuis 1973."
         },
         collectivite: {
             "temp-slider": "Bornage de la fenêtre temporelle d'analyse historique et projective pour le diagnostic climatique local et les rapports PCAET.",
@@ -1790,7 +2072,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "performance-table": "Métriques de validation statistique (RMSE, MAE, MAPE) calculées en phase de backtesting historique sur les années de test 2020-2025.",
             "methodology-section": "Méthodologie de normalisation et d'agrégation spatio-temporelle des données brutes issues de Météo-France, Citepa et du GIEC.",
             "actions-section": "Mesures réglementaires d'atténuation et d'adaptation préconisées pour les collectivités (Transports décarbonés, Rénovation tertiaire, PCAET).",
-            "climabot-chat": "Assistant conversationnel d'aide à la décision locale. Demandez des synthèses climatiques régionales ou des fiches d'action PCAET."
+            "climabot-chat": "Assistant conversationnel d'aide à la décision locale. Demandez des synthèses climatiques régionales ou des fiches d'action PCAET.",
+            "chart-sea-temp": "Séries temporelles de la température moyenne de surface de la mer (SST) par façade maritime pour l'analyse d'impact sur la biodiversité marine."
         }
     };
 
@@ -1880,29 +2163,141 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function setProfile(profile) {
+        const btnCitoyen = document.getElementById('profileCitoyen');
+        const btnDecideur = document.getElementById('profileDecideur');
+        if (!btnCitoyen || !btnDecideur) return;
+        
+        if (profile === 'citoyen') {
+            if (currentProfile === 'citoyen') return;
+            currentProfile = 'citoyen';
+            btnCitoyen.classList.add('active');
+            btnDecideur.classList.remove('active');
+            document.body.classList.remove('decideur-mode');
+        } else if (profile === 'collectivite') {
+            if (currentProfile === 'collectivite') return;
+            currentProfile = 'collectivite';
+            btnDecideur.classList.add('active');
+            btnCitoyen.classList.remove('active');
+            document.body.classList.add('decideur-mode');
+        }
+        
+        // Update tabs inside modal if it exists to match dashboard
+        const tabCitoyen = document.getElementById('modalTabCitoyen');
+        const tabDecideur = document.getElementById('modalTabDecideur');
+        const contentCitoyen = document.getElementById('modalContentCitoyen');
+        const contentDecideur = document.getElementById('modalContentDecideur');
+        
+        if (tabCitoyen && tabDecideur && contentCitoyen && contentDecideur) {
+            if (profile === 'citoyen') {
+                tabCitoyen.classList.add('active');
+                tabDecideur.classList.remove('active');
+                contentCitoyen.classList.add('active');
+                contentDecideur.classList.remove('active');
+            } else {
+                tabDecideur.classList.add('active');
+                tabCitoyen.classList.remove('active');
+                contentDecideur.classList.add('active');
+                contentCitoyen.classList.remove('active');
+            }
+        }
+        
+        updateProfileContent();
+    }
+
     function initProfileSwitcher() {
         const btnCitoyen = document.getElementById('profileCitoyen');
         const btnDecideur = document.getElementById('profileDecideur');
         
         if (!btnCitoyen || !btnDecideur) return;
         
-        btnCitoyen.addEventListener('click', () => {
-            if (currentProfile === 'citoyen') return;
-            currentProfile = 'citoyen';
-            btnCitoyen.classList.add('active');
-            btnDecideur.classList.remove('active');
-            document.body.classList.remove('decideur-mode');
-            updateProfileContent();
+        btnCitoyen.addEventListener('click', () => setProfile('citoyen'));
+        btnDecideur.addEventListener('click', () => setProfile('collectivite'));
+    }
+    
+    function initOnboardingModal() {
+        const modal = document.getElementById('infoModal');
+        const openBtn = document.getElementById('openInfoModal');
+        const closeBtn = document.getElementById('closeInfoModal');
+        const startBtn = document.getElementById('modalStartBtn');
+        const tabCitoyen = document.getElementById('modalTabCitoyen');
+        const tabDecideur = document.getElementById('modalTabDecideur');
+        const neverShowCheck = document.getElementById('modalNeverShowAgain');
+        
+        if (!modal) return;
+        
+        // Open Modal
+        function showModal() {
+            modal.classList.remove('hidden');
+            // Sync modal active tab with current profile
+            const activeProfile = currentProfile === 'citoyen' ? 'citoyen' : 'collectivite';
+            
+            const tabCitoyen = document.getElementById('modalTabCitoyen');
+            const tabDecideur = document.getElementById('modalTabDecideur');
+            const contentCitoyen = document.getElementById('modalContentCitoyen');
+            const contentDecideur = document.getElementById('modalContentDecideur');
+            
+            if (tabCitoyen && tabDecideur && contentCitoyen && contentDecideur) {
+                if (activeProfile === 'citoyen') {
+                    tabCitoyen.classList.add('active');
+                    tabDecideur.classList.remove('active');
+                    contentCitoyen.classList.add('active');
+                    contentDecideur.classList.remove('active');
+                } else {
+                    tabDecideur.classList.add('active');
+                    tabCitoyen.classList.remove('active');
+                    contentDecideur.classList.add('active');
+                    contentCitoyen.classList.remove('active');
+                }
+            }
+            
+            // Check neverShow checkbox state from localStorage
+            if (localStorage.getItem('climashere_onboarded') === 'true') {
+                neverShowCheck.checked = true;
+            } else {
+                neverShowCheck.checked = false;
+            }
+        }
+        
+        // Close Modal
+        function hideModal() {
+            modal.classList.add('hidden');
+            // Save state if checkbox is checked
+            if (neverShowCheck && neverShowCheck.checked) {
+                localStorage.setItem('climashere_onboarded', 'true');
+            } else {
+                localStorage.removeItem('climashere_onboarded');
+            }
+        }
+        
+        // Event Listeners for trigger buttons
+        if (openBtn) openBtn.addEventListener('click', showModal);
+        if (closeBtn) closeBtn.addEventListener('click', hideModal);
+        if (startBtn) startBtn.addEventListener('click', hideModal);
+        
+        // Close on clicking outside the modal card
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal();
+            }
         });
         
-        btnDecideur.addEventListener('click', () => {
-            if (currentProfile === 'collectivite') return;
-            currentProfile = 'collectivite';
-            btnDecideur.classList.add('active');
-            btnCitoyen.classList.remove('active');
-            document.body.classList.add('decideur-mode');
-            updateProfileContent();
-        });
+        // Switch to Citoyen tab
+        if (tabCitoyen) {
+            tabCitoyen.addEventListener('click', () => setProfile('citoyen'));
+        }
+        
+        // Switch to Decideur tab
+        if (tabDecideur) {
+            tabDecideur.addEventListener('click', () => setProfile('collectivite'));
+        }
+        
+        // First load auto-display check
+        const onboarded = localStorage.getItem('climashere_onboarded');
+        if (onboarded !== 'true') {
+            // Auto open modal on first visit
+            setTimeout(showModal, 600);
+        }
     }
     
     function updateProfileContent() {

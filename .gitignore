@@ -1,7 +1,5 @@
 __pycache__/
 *.py[cod]
-*.py[cod]
-*.py[cod]
 .venv/
 venv/
 ENV/
@@ -12,15 +10,20 @@ include/
 .spyderproject
 .vscode/
 .idea/
+
 # Ignore all data files
- data_climat/*
+data_climat/*
+
 # Keep essential data for runtime
- !data_climat/gold_climate_indicators.parquet
- !data_climat/gold_projections.parquet
- !data_climat/model_performance.parquet
- !data_climat/igt_emissions.json
- !data_climat/dept_mapping.json
+!data_climat/gold_climate_indicators.parquet
+!data_climat/gold_projections.parquet
+!data_climat/model_performance.parquet
+!data_climat/igt_emissions.json
+!data_climat/dept_mapping.json
+!data_climat/gold_sea_temperature.parquet
+
 # Keep geojson min version needed for map
- !static/js/departements_min.geojson
+!static/js/departements_min.geojson
+
 # Keep small config files
- !*.md
+!*.md

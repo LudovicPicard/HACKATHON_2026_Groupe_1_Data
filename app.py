@@ -12,6 +12,8 @@ GOLD_DATA_PATH = "data_climat/gold_climate_indicators.parquet"
 PROJECTION_DATA_PATH = "data_climat/gold_projections.parquet"
 PERF_DATA_PATH = "data_climat/model_performance.parquet"
 IGT_DATA_PATH = "data_climat/igt_emissions.json"
+SEA_TEMP_DATA_PATH = "data_climat/gold_sea_temperature.parquet"  # Force reload
+
 
 def load_data(path):
     if os.path.exists(path):
@@ -84,6 +86,14 @@ def get_deforestation():
     if df_deforestation is not None:
         return Response(df_deforestation.to_json(orient='records'), mimetype='application/json')
     return jsonify({"error": "Deforestation data not found"}), 404
+
+@app.route('/api/sea-temperature')
+def get_sea_temperature():
+    """Return sea surface temperature evolution as JSON."""
+    if df_sea_temp is not None:
+        return Response(df_sea_temp.to_json(orient='records'), mimetype='application/json')
+    return jsonify({"error": "Sea temperature data not found"}), 404
+
 
 CITY_TO_DEPT = {
     "Bedarieux": "Hérault (34)",
@@ -174,6 +184,10 @@ def load_deforestation():
 
 # Pre‑load deforestation data
 df_deforestation = load_deforestation()
+
+# Pre‑load sea temperature data
+df_sea_temp = load_data(SEA_TEMP_DATA_PATH)
+
 
 def get_display_name(city):
     return CITY_TO_DEPT.get(city, city)

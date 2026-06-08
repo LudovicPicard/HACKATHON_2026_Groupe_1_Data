@@ -46,6 +46,9 @@
             </div>
 
             <div class="controls">
+                <button id="openInfoModal" class="info-trigger-btn" title="À propos de ClimaSphere">
+                    <i class="fa-solid fa-circle-question"></i>
+                </button>
                 <div class="profile-switcher-container">
                     <div class="profile-switcher">
                         <button id="profileCitoyen" class="profile-btn active" title="Profil Particulier / Citoyen">
@@ -184,6 +187,9 @@
                         <button id="showDeforMap" class="toggle-btn" title="Déforestation (2025)">
                             <i class="fa-solid fa-tree"></i>
                         </button>
+                        <button id="showSeaTemp" class="toggle-btn" title="Température des Mers (SST)">
+                            <i class="fa-solid fa-water"></i>
+                        </button>
                         <span class="info-tooltip" data-tooltip-id="map-layers" style="align-self: center; margin-top: 5px; cursor: help; color: var(--text-muted);">
                             <i class="fa-solid fa-circle-question"></i>
                         </span>
@@ -216,6 +222,26 @@
                         <span class="info-tooltip" data-tooltip-id="chart-extreme"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <canvas id="extremeDaysChart"></canvas>
+                </div>
+                <div class="glass-card side-chart-container" style="height: auto; min-height: 350px; overflow-y: auto;">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-water"></i> Température des Mers</h2>
+                        <span class="info-tooltip" data-tooltip-id="chart-sea-temp"><i class="fa-solid fa-circle-question"></i></span>
+                    </div>
+                    <div class="performance-table-container" style="margin-top: 10px;">
+                        <table class="performance-table" id="seaTempTable">
+                            <thead>
+                                <tr>
+                                    <th>Département</th>
+                                    <th>Température</th>
+                                    <th>Évolution (vs 1988)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Injected dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -362,6 +388,100 @@
         <div class="chat-input-area">
             <input type="text" id="chat-input" placeholder="Posez votre question...">
             <button id="send-chat" class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Info / Onboarding Modal -->
+    <div id="infoModal" class="info-modal-overlay hidden">
+        <div class="info-modal-card">
+            <header class="info-modal-header">
+                <div class="info-modal-logo">
+                    <h2>Clima<span>Sphere</span></h2>
+                </div>
+                <button id="closeInfoModal" class="info-modal-close-btn" aria-label="Fermer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            
+            <div class="info-modal-body">
+                <h3 class="info-modal-welcome">Bienvenue sur ClimaSphere</h3>
+                <p class="info-modal-intro">
+                    Une plateforme d'intelligence climatique conçue pour comprendre les évolutions environnementales de votre territoire et guider la prise de décision, que vous soyez un citoyen engagé ou un décideur public.
+                </p>
+                
+                <div class="info-modal-tabs">
+                    <button id="modalTabCitoyen" class="modal-tab-btn active">
+                        <i class="fa-solid fa-house"></i> Citoyen
+                    </button>
+                    <button id="modalTabDecideur" class="modal-tab-btn">
+                        <i class="fa-solid fa-building"></i> Décideur Public
+                    </button>
+                </div>
+                
+                <div class="info-modal-tab-content">
+                    <div id="modalContentCitoyen" class="modal-pane active">
+                        <div class="modal-feature-list">
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-temperature-arrow-up"></i></div>
+                                <div class="feature-text">
+                                    <h4>Comprendre l'évolution locale</h4>
+                                    <p>Suivez les indicateurs clés de votre département (températures moyennes, jours de canicule, nuits tropicales et gel) depuis 1850 pour mesurer concrètement l'évolution du climat.</p>
+                                </div>
+                            </div>
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-water"></i></div>
+                                <div class="feature-text">
+                                    <h4>Suivi des températures des mers</h4>
+                                    <p>Analysez l'évolution des températures de surface des 6 zones marines côtières françaises par rapport aux moyennes historiques pour appréhender l'impact océanique.</p>
+                                </div>
+                            </div>
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-seedling"></i></div>
+                                <div class="feature-text">
+                                    <h4>Agir au quotidien</h4>
+                                    <p>Accédez à des écogestes et solutions personnalisés en fonction des défis écologiques spécifiques identifiés sur votre territoire de résidence.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="modalContentDecideur" class="modal-pane">
+                        <div class="modal-feature-list">
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                                <div class="feature-text">
+                                    <h4>Diagnostic & Émissions GES</h4>
+                                    <p>Visualisez la répartition des émissions de gaz à effet de serre par secteur d'activité (CITEPA national) et suivez l'impact carbone direct de votre territoire (IGT).</p>
+                                </div>
+                            </div>
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-route"></i></div>
+                                <div class="feature-text">
+                                    <h4>Anticipation & Modélisation IA</h4>
+                                    <p>Comparez les projections climatiques jusqu'à 2100 générées par IA (Prophet, Linéaire) selon les scénarios officiels du GIEC (RCP 2.6, 4.5, 8.5 et SSP).</p>
+                                </div>
+                            </div>
+                            <div class="modal-feature-item">
+                                <div class="feature-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                                <div class="feature-text">
+                                    <h4>Planification & Réglementations</h4>
+                                    <p>Accédez à des recommandations de politiques publiques structurées et alignées sur les orientations réglementaires françaises comme le PCAET et le PNACC.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <footer class="info-modal-footer">
+                <label class="modal-checkbox-label">
+                    <input type="checkbox" id="modalNeverShowAgain">
+                    <span>Ne plus afficher au démarrage</span>
+                </label>
+                <button id="modalStartBtn" class="modal-cta-btn">
+                    Commencer l'exploration <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </footer>
         </div>
     </div>
 
