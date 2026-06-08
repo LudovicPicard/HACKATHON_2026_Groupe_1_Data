@@ -423,11 +423,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endYear > 2026) endYear = 2026;
         if (endYear < startYear) endYear = startYear;
         
-        const filtered = seaTempData.filter(d => 
-            String(d.DEPARTEMENT) === String(deptCode) && 
-            d.ANNEE >= startYear && 
-            d.ANNEE <= endYear
-        );
+        let filtered;
+        if (deptCode === "FRANCE") {
+            filtered = seaTempData.filter(d => 
+                d.ANNEE >= startYear && 
+                d.ANNEE <= endYear
+            );
+        } else {
+            filtered = seaTempData.filter(d => 
+                String(d.DEPARTEMENT) === String(deptCode) && 
+                d.ANNEE >= startYear && 
+                d.ANNEE <= endYear
+            );
+        }
         
         if (filtered.length === 0) return null;
         const sum = filtered.reduce((s, d) => s + d.TEMPERATURE, 0);
@@ -1310,6 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const coastalDepts = [
+            { code: "FRANCE", name: "France (Moyenne)" },
             { code: "14", name: "Calvados (14)" },
             { code: "22", name: "Côtes-d'Armor (22)" },
             { code: "44", name: "Loire-Atlantique (44)" },
@@ -1330,8 +1339,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentTemp = getSeaTempForDept(dept.code);
             
             // Get baseline temperature (earliest year available, e.g. 1988)
-            const baselineData = seaTempData.filter(d => String(d.DEPARTEMENT) === String(dept.code) && d.TEMPERATURE !== null).sort((a,b) => a.ANNEE - b.ANNEE);
-            const baselineTemp = baselineData.length > 0 ? baselineData[0].TEMPERATURE : null;
+            let baselineTemp = null;
+            if (dept.code === "FRANCE") {
+                const bData = seaTempData.filter(d => Number(d.ANNEE) === 1988 && d.TEMPERATURE !== null);
+                if (bData.length > 0) {
+                    baselineTemp = bData.reduce((s, d) => s + d.TEMPERATURE, 0) / bData.length;
+                }
+            } else {
+                const bData = seaTempData.filter(d => String(d.DEPARTEMENT) === String(dept.code) && Number(d.ANNEE) === 1988 && d.TEMPERATURE !== null);
+                if (bData.length > 0) {
+                    baselineTemp = bData[0].TEMPERATURE;
+                }
+            }
             
             const tempStr = currentTemp ? `<strong>${currentTemp.toFixed(2)} °C</strong>` : '--';
             
@@ -1344,8 +1363,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 diffHtml = `<span style="color: ${color}; font-weight: 700; font-family: var(--font-heading);">${sign}${diff.toFixed(2)} °C ${arrow}</span>`;
             }
 
+            const isFranceRow = dept.code === "FRANCE";
+            const rowStyle = isFranceRow 
+                ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.08); font-weight: bold;' 
+                : 'border-bottom: 1px solid var(--glass-border);';
+
             html += `
-                <tr style="border-bottom: 1px solid var(--glass-border); transition: background-color 0.2s;">
+                <tr style="${rowStyle} transition: background-color 0.2s;">
                     <td style="padding: 12px 8px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-water" style="color: var(--accent-blue); margin-right: 8px; font-size: 0.8rem;"></i>${dept.name}</td>
                     <td style="padding: 12px 8px; color: var(--text-secondary);">${tempStr}</td>
                     <td style="padding: 12px 8px;">${diffHtml}</td>
