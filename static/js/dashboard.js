@@ -868,7 +868,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'sea') {
             const match = city.match(/\((\d{2,3}|2A|2B)\)/);
             const deptCode = match ? match[1] : null;
-            const temp = deptCode ? getSeaTempForDept(deptCode) : null;
+            
+            const isDom = deptCode && (deptCode.startsWith('97') || deptCode.startsWith('98'));
+            const isFranceVal = isFrance(city);
+            
+            let temp = null;
+            let displayName = getDisplayName(city);
+            
+            if (isFranceVal || isDom) {
+                temp = getSeaTempForDept("FRANCE");
+                displayName = isFranceVal ? displayName : `${displayName} (Moyenne France)`;
+            } else if (deptCode) {
+                temp = getSeaTempForDept(deptCode);
+            }
             
             if (temp === null) {
                 panel.innerHTML = `
@@ -879,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 panel.innerHTML = `
                     ${closeBtnHtml}
-                    <h3><i class="fa-solid fa-water"></i> ${getDisplayName(city)}</h3>
+                    <h3><i class="fa-solid fa-water"></i> ${displayName}</h3>
                     <div class="igt-stats">
                         <div class="igt-stat-row">
                             <span class="igt-label">🌡️ Temp. Mer (SST)</span>
@@ -1317,6 +1329,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const match = currentCity.match(/\((\d{2,3}|2A|2B)\)/);
+        const selectedDeptCode = match ? match[1] : null;
+        const isFranceVal = isFrance(currentCity);
+        const isDom = selectedDeptCode && (selectedDeptCode.startsWith('97') || selectedDeptCode.startsWith('98'));
+
         const coastalDepts = [
             { code: "FRANCE", name: "France (Moyenne)" },
             { code: "14", name: "Calvados (14)" },
@@ -1364,9 +1381,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const isFranceRow = dept.code === "FRANCE";
-            const rowStyle = isFranceRow 
-                ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.08); font-weight: bold;' 
-                : 'border-bottom: 1px solid var(--glass-border);';
+            const isHighlighted = (isFranceRow && (isFranceVal || isDom)) || (selectedDeptCode && dept.code === selectedDeptCode);
+            const rowStyle = isHighlighted
+                ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.22); font-weight: bold;' 
+                : (isFranceRow ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.08); font-weight: bold;' : 'border-bottom: 1px solid var(--glass-border);');
 
             html += `
                 <tr style="${rowStyle} transition: background-color 0.2s;">
