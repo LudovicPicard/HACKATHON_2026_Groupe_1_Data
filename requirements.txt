@@ -1,13 +1,8 @@
-pandas
-numpy
-matplotlib
-seaborn
-scipy
-requests
-ipykernel
-jupyter
 flask
+flask-cors
+gunicorn
 mistralai
+pandas
 pyarrow
+numpy
 scikit-learn
-prophet

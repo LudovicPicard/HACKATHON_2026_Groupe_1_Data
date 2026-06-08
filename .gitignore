@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
-*$py.class
+*.py[cod]
+*.py[cod]
 .venv/
 venv/
 ENV/
@@ -9,23 +10,17 @@ lib/
 include/
 .env
 .spyderproject
-.spyproject
 .vscode/
 .idea/
-*.csv
-*.json
-!Données_Climatologiques_swagger.json
-!stations_cibles.csv
-!observations_quotidiennes.csv
-!observations_mensuelles.csv
-# We might want to keep some CSVs if they are small, but usually data is ignored.
-# User mentioned pushing data, so I'll be careful.
-# Actually, the repo name has "Data" in it, so maybe they WANT the CSVs.
-# I will allow CSVs for now since it's a "Data" repo.
-.venv/
-.vscode/
-Datas/*
-!Datas/france_climat_complet.parquet
-!Datas/silver_climate_data.parquet
-!Datas/gold_indicators_region.parquet
-!Datas/gold_indicators_departement.parquet
+# Ignore all data files
+ data_climat/*
+# Keep essential data for runtime
+ !data_climat/gold_climate_indicators.parquet
+ !data_climat/gold_projections.parquet
+ !data_climat/model_performance.parquet
+ !data_climat/igt_emissions.json
+ !data_climat/dept_mapping.json
+# Keep geojson min version needed for map
+ !static/js/departements_min.geojson
+# Keep small config files
+ !*.md

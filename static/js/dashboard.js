@@ -9,12 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Charts instances
     let evolutionChart, extremeDaysChart, anomalyChart, projectionsChart;
     let ghgSectorChart;
-    let map, markers = {};
+    let map, markers = {}, deforLayer = null;
     let simulationYear = 2026;
     let performanceData = [];
     let igtData = {};
+    let deforData = {};
     let meteoLayer, igtLayer;
     let currentLayer = "meteo";
+    let currentProfile = "citoyen"; // "citoyen" or "collectivite"
     let simulationMode = "single"; // "single" or "range"
     let rangeStartYear = 1990;
     let rangeEndYear = 2025;
@@ -84,86 +86,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeYearEl = document.getElementById('activeYear');
     
     // City Coordinates for Map
-    const cityCoords = {
-        "Bedarieux": [43.6167, 3.1667],
-        "Begrolles": [47.1333, -0.9333],
-        "Bordeaux": [44.8378, -0.5792],
-        "Brest": [48.3900, -4.4900],
-        "Charavines": [45.4264, 5.5161],
-        "Dijon": [47.3167, 5.0167],
-        "Lille": [50.6293, 3.0573],
-        "Lyon": [45.7640, 4.8357],
-        "Marseille": [43.2965, 5.3698],
-        "Nantes": [47.2184, -1.5536],
-        "Nice": [43.7031, 7.2661],
-        "Nimes": [43.8380, 4.3610],
-        "Octeville": [49.4938, 0.1077],
-        "Paris": [48.8566, 2.3522],
-        "Rennes": [48.1173, -1.6778],
-        "Sommesous": [48.7411, 4.1953],
-        "St etienne": [45.4347, 4.3903],
-        "Strasbourg": [48.5800, 7.7500],
-        "Toulon": [43.1258, 5.9306],
-        "Toulouse": [43.6043, 1.4437]
+    let cityCoords = {
+        "France (avec Outre-mer)": [46.2276, 2.2137],
+        "France (sans Outre-mer)": [46.2276, 2.2137]
     };
 
-    const cityToDept = {
-        "Bedarieux": "Hérault (34)",
-        "Begrolles": "Maine-et-Loire (49)",
-        "Bordeaux": "Gironde (33)",
-        "Brest": "Finistère (29)",
-        "Charavines": "Isère (38)",
-        "Dijon": "Côte-d'Or (21)",
-        "Lille": "Nord (59)",
-        "Lyon": "Rhône (69)",
-        "Marseille": "Bouches-du-Rhône (13)",
-        "Nantes": "Loire-Atlantique (44)",
-        "Nice": "Alpes-Maritimes (06)",
-        "Nimes": "Gard (30)",
-        "Octeville": "Seine-Maritime (76)",
-        "Paris": "Paris (75)",
-        "Rennes": "Ille-et-Vilaine (35)",
-        "Sommesous": "Marne (51)",
-        "St etienne": "Loire (42)",
-        "Strasbourg": "Bas-Rhin (67)",
-        "Toulon": "Var (83)",
-        "Toulouse": "Haute-Garonne (31)",
-        "France": "🇫🇷 France (Moyenne)"
+    let cityToDept = {
+        "France (avec Outre-mer)": "🇫🇷 France (Moyenne avec DOM-TOM)",
+        "France (sans Outre-mer)": "🇫🇷 France (Moyenne sans DOM-TOM)"
     };
 
     function getDisplayName(city) {
         return cityToDept[city] || city;
     }
+
+    function mapGeoJsonCodeToDbCode(code) {
+        if (code === '2A' || code === '2B') return '20';
+        if (code === '976') return '985';
+        return code;
+    }
+
+    function isCodeMatch(featureCode, activeCode) {
+        if (activeCode === '20' && (featureCode === '2A' || featureCode === '2B')) return true;
+        if (activeCode === '985' && featureCode === '976') return true;
+        return featureCode === activeCode;
+    }
+
+    function isFrance(city) {
+        return city === "France" || city === "France (avec Outre-mer)" || city === "France (sans Outre-mer)";
+    }
     
-    // 1. Initial Load
+    // 1. Initial Load (including department coordinates and GeoJSON boundaries)
     Promise.all([
+        fetch('/api/deforestation').then(res => res.json()),
         fetch('/api/cities').then(res => res.json()),
         fetch('/api/data').then(res => res.json()),
         fetch('/api/projections').then(res => res.json()),
         fetch('/api/performance').then(res => res.json()),
-        fetch('/api/igt').then(res => res.json())
-    ])
-    .then(([cities, data, projections, performance, igt]) => {
+        fetch('/api/igt').then(res => res.json()),
+        fetch('/api/departments').then(res => res.json()),
+        fetch('/static/js/departements_min.geojson').then(res => res.json())
+    ]).then(([deforRaw, cities, data, projections, performance, igt, departments, geojsonData]) => {
+        // Transform deforestation data into lookup by department name
+        const deforLookup = {};
+        deforRaw.forEach(item => {
+            const deptName = item.departement || item.dept || item.fullName || '';
+            const loss = item.loss_ha || item.loss || 0;
+            deforLookup[deptName] = loss;
+        });
+        // Assign to global variable for later use
+        window.deforData = deforLookup;
+            // also assign to local variable for convenience
+            deforData = deforLookup;
+
+        // Dynamically populate coordinates and display names from the backend mapping
+        Object.keys(departments).forEach(code => {
+            const dept = departments[code];
+            const fullName = `${dept.dept_name} (${dept.code})`;
+            cityCoords[fullName] = [dept.lat, dept.lon];
+            cityToDept[fullName] = `${dept.dept_name} (${dept.code})`;
+        });
+
+        // Override overseas department coordinates with shifted map positions
+        const shiftedCoords = {
+            "Guadeloupe (971)": [51.023, -7.324],
+            "Martinique (972)": [48.931, -7.043],
+            "Guyane (973)": [46.823, -7.224],
+            "La Réunion (974)": [44.945, -7.238],
+            "Mayotte (985)": [42.995, -7.234]
+        };
+        Object.keys(shiftedCoords).forEach(fullName => {
+            if (cityCoords[fullName]) {
+                cityCoords[fullName] = shiftedCoords[fullName];
+            }
+        });
+
         console.log("Données chargées:", { cities: cities.length, data: data.length, projections: projections.length, performance: performance.length, igt: Object.keys(igt).length });
         citySelect.innerHTML = '<option value="">Sélectionnez un département...</option>' + 
                                cities.map(city => `<option value="${city}">${getDisplayName(city)}</option>`).join('');
         allData = data;
-        if (data.length > 0) {
-            currentCity = "France";
-            citySelect.value = "France";
-            updateDashboard("France");
-            highlightMarker("France");
-        }
         projectionData = projections;
         performanceData = performance;
         igtData = igt;
 
-        initMap(cities);
+        initMap(cities, geojsonData);
 
         if (cities.length > 0) {
-            currentCity = cities[0];
-            citySelect.value = currentCity;
-            updateDashboard(currentCity);
+            currentCity = "France (sans Outre-mer)";
+            citySelect.value = "France (sans Outre-mer)";
+            initProfileSwitcher();
+            updateProfileContent(); 
+            highlightMarker("France (sans Outre-mer)");
+            showMapInfo("France (sans Outre-mer)", currentLayer);
         }
     })
     .catch(err => {
@@ -175,6 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
     citySelect.addEventListener('change', (e) => {
         currentCity = e.target.value;
         updateDashboard(currentCity);
+        highlightMarker(currentCity);
+        if (currentCity) {
+            showMapInfo(currentCity, currentLayer);
+        } else {
+            document.getElementById('map-info-panel').classList.add('hidden');
+        }
     });
 
     document.getElementById('modelSelect').addEventListener('change', (e) => {
@@ -239,113 +259,473 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('showMeteo').addEventListener('click', () => switchMapLayer('meteo'));
     document.getElementById('showEmissions').addEventListener('click', () => switchMapLayer('igt'));
+    document.getElementById('showDeforMap').addEventListener('click', () => switchMapLayer('defor'));
+
+    function updateLegend() {
+        const legend = document.getElementById('map-legend');
+        if (!legend) return;
+        
+        if (currentLayer === 'meteo') {
+            legend.querySelector('.legend-title').textContent = "Température Moyenne (°C)";
+            legend.querySelector('.scale-bar').style.background = "linear-gradient(to right, #3b82f6, #2dd4bf, #10b981, #eab308, #ef4444)";
+            legend.querySelector('.legend-labels').innerHTML = `
+                <span>< 8°C (Frais)</span>
+                <span>12°C (Tempéré)</span>
+                <span>> 16°C (Chaud)</span>
+            `;
+            legend.classList.remove('hidden');
+        } else if (currentLayer === 'igt') {
+            legend.querySelector('.legend-title').textContent = "Émissions CO2e (millions de tonnes)";
+            legend.querySelector('.scale-bar').style.background = "linear-gradient(to right, #34d399, #fbbf24, #ef4444)";
+            legend.querySelector('.legend-labels').innerHTML = `
+                <span>< 1.0M (Bas)</span>
+                <span>4.2M (Médian)</span>
+                <span>> 8.0M (Élevé)</span>
+            `;
+            legend.classList.remove('hidden');
+        } else {
+            legend.querySelector('.legend-title').textContent = "Déforestation (ha)";
+            legend.querySelector('.scale-bar').style.background = "linear-gradient(to right, #4ade80, #ef4444)";
+            legend.querySelector('.legend-labels').innerHTML = `
+                <span>0</span>
+                <span>> 8000</span>
+            `;
+            legend.classList.remove('hidden');
+        }
+    }
 
     function switchMapLayer(layer) {
         currentLayer = layer;
         document.getElementById('showMeteo').classList.toggle('active', layer === 'meteo');
         document.getElementById('showEmissions').classList.toggle('active', layer === 'igt');
-        
+        document.getElementById('showDeforMap').classList.toggle('active', layer === 'defor');
+        const panel = document.getElementById('map-info-panel');
+        const isPanelVisible = panel && !panel.classList.contains('hidden');
+        updateLegend();
         if (layer === 'meteo') {
             map.removeLayer(igtLayer);
+            if (deforLayer) map.removeLayer(deforLayer);
             meteoLayer.addTo(map);
-        } else {
+            updateMapStyles();
+        } else if (layer === 'igt') {
             map.removeLayer(meteoLayer);
+            if (deforLayer) map.removeLayer(deforLayer);
             igtLayer.addTo(map);
+        } else if (layer === 'defor') {
+            map.removeLayer(meteoLayer);
+            map.removeLayer(igtLayer);
+            if (deforLayer) deforLayer.addTo(map);
+        }
+        if (currentCity) {
+            highlightMarker(currentCity);
+            if (isPanelVisible) {
+                showMapInfo(currentCity, layer);
+            }
         }
     }
 
-    function initMap(cities) {
-        map = L.map('map', {
-            zoomControl: false,
-            attributionControl: false,
-            dragging: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
-            boxZoom: false,
-            touchZoom: false
-        }).setView([46.4033, 2.3883], 4.7);
+    function getDeforColor(val) {
+        const maxLoss = 8000; // max ha for scaling
+        const ratio = Math.min(1, Math.max(0, val / maxLoss));
+        const hue = (1 - ratio) * 120; // green to red
+        return `hsl(${hue}, 80%, 45%)`;
+    }
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19
-        }).addTo(map);
-        meteoLayer = L.layerGroup().addTo(map);
-        igtLayer = L.layerGroup();
+    function getEmissionsColor(val) {
+        const minVal = 1000000;
+        const maxVal = 8000000;
+        const ratio = Math.min(1, Math.max(0, (val - minVal) / (maxVal - minVal)));
+        const hue = (1 - ratio) * 120; // 120 (green) to 0 (red)
+        return `hsl(${hue}, 80%, 45%)`;
+    }
 
-        cities.forEach(city => {
-            if (cityCoords[city]) {
-                // 1. Meteo Marker
-                const marker = L.circleMarker(cityCoords[city], {
-                    radius: 8,
-                    fillColor: "#00d2ff",
-                    color: "#fff",
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(meteoLayer);
-                
-                marker.bindPopup(`<b>${getDisplayName(city)}</b>`);
-                marker.on('click', () => {
-                    currentCity = city;
-                    citySelect.value = city;
-                    updateDashboard(city);
-                    highlightMarker(city);
-                    showMapInfo(city, 'meteo');
-                });
+    function getMeteoColor(temp) {
+        if (temp === null || temp === undefined) return 'rgba(255, 255, 255, 0.05)';
+        // Normalize between 8°C and 16°C for France
+        const minT = 8;
+        const maxT = 16;
+        const ratio = Math.min(1, Math.max(0, (temp - minT) / (maxT - minT)));
+        // HSL Hue: 240 (Blue/Cold) to 0 (Red/Hot)
+        const hue = (1 - ratio) * 240;
+        return `hsl(${hue}, 80%, 45%)`;
+    }
 
-                // 2. IGT Marker
-                const cityIgt = igtData[city];
-                if (cityIgt) {
-                    const total = cityIgt.TOTAL_CO2e || 0;
-                    // Scale radius based on emissions - proportional to sqrt of area
-                    const rad = Math.sqrt(total) / 40 + 4; 
-                    
-                    const igtMarker = L.circleMarker(cityCoords[city], {
-                        radius: rad,
-                        fillColor: "#ff4d4d",
-                        color: "#fff",
-                        weight: 2,
-                        opacity: 0.8,
-                        fillOpacity: 0.6
-                    }).addTo(igtLayer);
-
-                    igtMarker.bindPopup(`<b>${getDisplayName(city)}</b><br><small>Émissions CO2e</small>`);
-                    igtMarker.on('click', () => {
-                        currentCity = city;
-                        citySelect.value = city;
-                        updateDashboard(city);
-                        showMapInfo(city, 'igt');
+    function getTempForCity(city) {
+        const cityData = allData.filter(d => d.VILLE === city);
+        if (cityData.length === 0) return null;
+        
+        if (simulationMode === "single") {
+            const yearData = cityData.find(d => Number(d.ANNEE) === Number(simulationYear));
+            return yearData ? yearData.TM : null;
+        } else {
+            const years = cityData.filter(d => Number(d.ANNEE) >= rangeStartYear && Number(d.ANNEE) <= rangeEndYear);
+            if (years.length === 0) return null;
+            return years.reduce((s, y) => s + (y.TM || 0), 0) / years.length;
+        }
+    }
+    function updateMapStyles() {
+        if (!meteoLayer || currentLayer !== 'meteo') return;
+        meteoLayer.eachLayer(function(layer) {
+            if (layer.feature && layer.feature.properties) {
+                const code = mapGeoJsonCodeToDbCode(layer.feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                if (fullName) {
+                    const temp = getTempForCity(fullName);
+                    layer.setStyle({
+                        fillColor: getMeteoColor(temp)
                     });
                 }
             }
         });
+    }
+
+    function initMap(cities, geojsonData) {
+        map = L.map('map', {
+            zoomControl: true,
+            attributionControl: false,
+            dragging: true,
+            scrollWheelZoom: true,
+            doubleClickZoom: true,
+            boxZoom: true,
+            touchZoom: true
+        }).setView([46.4033, 2.3883], 5.2);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
         
-        if (cities.length > 0) highlightMarker(cities[0]);
+        // 1. Meteo Layer as GeoJSON Choropleth Map (colored by temperature)
+        meteoLayer = L.geoJSON(geojsonData, {
+            style: function(feature) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                const temp = getTempForCity(fullName);
+                
+                return {
+                    fillColor: getMeteoColor(temp),
+                    weight: 1.5,
+                    opacity: 0.8,
+                    color: 'rgba(255, 255, 255, 0.25)',
+                    fillOpacity: 0.55
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                
+                if (fullName) {
+                    layer.bindPopup(`<b>${fullName}</b>`);
+                    
+                    layer.on('click', () => {
+                        currentCity = fullName;
+                        citySelect.value = fullName;
+                        updateDashboard(fullName);
+                        highlightMarker(fullName);
+                        showMapInfo(fullName, 'meteo');
+                    });
+                }
+                
+                layer.on('mouseover', function(e) {
+                    this.setStyle({
+                        weight: 2.5,
+                        color: '#fff',
+                        fillOpacity: 0.75
+                    });
+                });
+                
+                layer.on('mouseout', function(e) {
+                    meteoLayer.resetStyle(this);
+                    if (fullName === currentCity) {
+                        this.setStyle({
+                            weight: 3,
+                            color: "#fbbf24",
+                            fillOpacity: 0.75
+                        });
+                    }
+                });
+            }
+        }).addTo(map);
+
+        // Add small station dots inside meteoLayer for precision
+        cities.forEach(city => {
+            if (cityCoords[city] && !isFrance(city)) {
+                L.circleMarker(cityCoords[city], {
+                    radius: 3,
+                    fillColor: "#fff",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 0.6,
+                    fillOpacity: 0.8,
+                    interactive: false
+                }).addTo(meteoLayer);
+            }
+        });
+
+        // 2. IGT Layer as GeoJSON Choropleth Map (colored by emissions)
+        igtLayer = L.geoJSON(geojsonData, {
+            style: function(feature) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                const cityIgt = igtData[fullName];
+                const emissions = cityIgt ? (cityIgt.TOTAL_CO2e || 0) : 0;
+                return {
+                    fillColor: getEmissionsColor(emissions),
+                    weight: 1.5,
+                    opacity: 0.8,
+                    color: 'rgba(255, 255, 255, 0.25)',
+                    fillOpacity: 0.5
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                if (fullName) {
+                    const cityIgt = igtData[fullName];
+                    const totalEmissions = cityIgt ? Math.round(cityIgt.TOTAL_CO2e).toLocaleString() : '0';
+                    layer.bindPopup(`<b>${fullName}</b><br>Émissions: <b>${totalEmissions} tCO2e</b>`);
+                    layer.on('click', () => {
+                        currentCity = fullName;
+                        citySelect.value = fullName;
+                        updateDashboard(fullName);
+                        highlightMarker(fullName);
+                        showMapInfo(fullName, 'igt');
+                    });
+                }
+                layer.on('mouseover', function(e) {
+                    this.setStyle({
+                        weight: 2.5,
+                        color: '#fff',
+                        fillOpacity: 0.75
+                    });
+                });
+                layer.on('mouseout', function(e) {
+                    igtLayer.resetStyle(this);
+                    if (fullName === currentCity) {
+                        this.setStyle({
+                            weight: 3,
+                            color: "#fbbf24",
+                            fillOpacity: 0.75
+                        });
+                    }
+                });
+            }
+        });
+        // 3. Deforestation Layer (colored by tree loss)
+        deforLayer = L.geoJSON(geojsonData, {
+            style: function(feature) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                const loss = (window.deforData && window.deforData[fullName]) || 0;
+                return {
+                    fillColor: getDeforColor(loss),
+                    weight: 1.5,
+                    opacity: 0.8,
+                    color: 'rgba(255, 255, 255, 0.25)',
+                    fillOpacity: 0.55
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
+                const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
+                if (fullName) {
+                    const loss = deforData[fullName] || 0;
+                    layer.bindPopup(`<b>${fullName}</b><br>Déforestation: <b>${loss} ha</b>`);
+                    layer.on('click', () => {
+                        currentCity = fullName;
+                        citySelect.value = fullName;
+                        updateDashboard(fullName);
+                        highlightMarker(fullName);
+                        showMapInfo(fullName, 'defor');
+                    });
+                }
+                layer.on('mouseover', function(e) {
+                    this.setStyle({
+                        weight: 2.5,
+                        color: '#fff',
+                        fillOpacity: 0.75
+                    });
+                });
+                layer.on('mouseout', function(e) {
+                    deforLayer.resetStyle(this);
+                    if (fullName === currentCity) {
+                        this.setStyle({
+                            weight: 3,
+                            color: "#fbbf24",
+                            fillOpacity: 0.75
+                        });
+                    }
+                });
+            }
+        });
+        // Removed duplicate igtLayer definition; original defined earlier.
+
+        if (cities.length > 0) highlightMarker(currentCity);
+        updateLegend();
+
+        // Close panel on map click
+        map.on('click', (e) => {
+            // Only hide if the click is on the map background, not on features
+            if (e.originalEvent.target.id === 'map') {
+                document.getElementById('map-info-panel').classList.add('hidden');
+            }
+        });
     }
 
     function highlightMarker(cityName) {
-        Object.keys(markers).forEach(c => {
-            const m = markers[c];
-            const isActive = (c === cityName);
-            m.setStyle({
-                fillColor: isActive ? "#fbbf24" : "#00d2ff",
-                radius: isActive ? 12 : 8
+        const match = cityName.match(/\((\w+)\)/);
+        const activeCode = match ? match[1] : null;
+        
+        if (meteoLayer && currentLayer === 'meteo') {
+            meteoLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const isActive = isCodeMatch(layer.feature.properties.code, activeCode);
+                    layer.setStyle({
+                        weight: isActive ? 3 : 1.5,
+                        color: isActive ? "#fbbf24" : 'rgba(255, 255, 255, 0.25)',
+                        fillOpacity: isActive ? 0.75 : 0.55
+                    });
+                    if (isActive && typeof layer.bringToFront === 'function') {
+                        layer.bringToFront();
+                    }
+                }
             });
-        });
+        } else if (igtLayer && currentLayer === 'igt') {
+            igtLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const isActive = isCodeMatch(layer.feature.properties.code, activeCode);
+                    layer.setStyle({
+                        weight: isActive ? 3 : 1.5,
+                        color: isActive ? "#fbbf24" : 'rgba(255, 255, 255, 0.25)',
+                        fillOpacity: isActive ? 0.75 : 0.5
+                    });
+                    if (isActive && typeof layer.bringToFront === 'function') {
+                        layer.bringToFront();
+                    }
+                }
+            });
+        } else if (deforLayer && currentLayer === 'defor') {
+            deforLayer.eachLayer(function(layer) {
+                if (layer.feature && layer.feature.properties) {
+                    const isActive = isCodeMatch(layer.feature.properties.code, activeCode);
+                    layer.setStyle({
+                        weight: isActive ? 3 : 1.5,
+                        color: isActive ? "#fbbf24" : 'rgba(255, 255, 255, 0.25)',
+                        fillOpacity: isActive ? 0.75 : 0.55
+                    });
+                    if (isActive && typeof layer.bringToFront === 'function') {
+                        layer.bringToFront();
+                    }
+                }
+            });
+        }
     }
 
     function showMapInfo(city, mode) {
         const panel = document.getElementById('map-info-panel');
         if (!panel) return;
 
+        // Close button HTML
+        const closeBtnHtml = `<button class="panel-close-btn" onclick="this.parentElement.classList.add('hidden')" style="position: absolute; top: 12px; right: 15px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; transition: color 0.2s;"><i class="fa-solid fa-xmark"></i></button>`;
+
         if (mode === 'meteo') {
+            const cityData = allData.filter(d => d.VILLE === city);
+            let tempVal = "--";
+            let rainVal = "--";
+            let frostVal = "--";
+            let caniculeVal = "--";
+            
+            if (simulationMode === "single") {
+                const yearData = cityData.find(d => Number(d.ANNEE) === Number(simulationYear));
+                if (yearData) {
+                    tempVal = (yearData.TM || 0).toFixed(1) + " °C";
+                    rainVal = (yearData.RR_TOTAL || 0).toFixed(0) + " mm";
+                    frostVal = Math.round(yearData.DAYS_FROST || 0) + " j";
+                    caniculeVal = Math.round(yearData.DAYS_CANICULE || 0) + " j";
+                }
+            } else {
+                const years = cityData.filter(d => Number(d.ANNEE) >= rangeStartYear && Number(d.ANNEE) <= rangeEndYear);
+                if (years.length > 0) {
+                    const count = years.length;
+                    tempVal = (years.reduce((s, y) => s + (y.TM || 0), 0) / count).toFixed(1) + " °C";
+                    rainVal = (years.reduce((s, y) => s + (y.RR_TOTAL || 0), 0) / count).toFixed(0) + " mm";
+                    frostVal = Math.round(years.reduce((s, y) => s + (y.DAYS_FROST || 0), 0) / count) + " j/an";
+                    caniculeVal = Math.round(years.reduce((s, y) => s + (y.DAYS_CANICULE || 0), 0) / count) + " j/an";
+                }
+            }
+            
             panel.innerHTML = `
-                <h3><i class="fa-solid fa-location-dot"></i> ${getDisplayName(city)}</h3>
+                ${closeBtnHtml}
+                <h3><i class="fa-solid fa-cloud-sun"></i> ${getDisplayName(city)}</h3>
                 <div class="igt-stats">
-                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Station météo active pour les simulations climatiques.</p>
+                    <div class="igt-stat-row">
+                        <span class="igt-label">🌡️ Temp. Moyenne</span>
+                        <span class="igt-val" style="color: var(--text-primary)">${tempVal}</span>
+                    </div>
+                    <div class="igt-stat-row">
+                        <span class="igt-label">🌧️ Précipitations</span>
+                        <span class="igt-val" style="color: var(--text-primary)">${rainVal}</span>
+                    </div>
+                    <div class="igt-stat-row">
+                        <span class="igt-label">❄️ Jours de Gel</span>
+                        <span class="igt-val" style="color: var(--text-primary)">${frostVal}</span>
+                    </div>
+                    <div class="igt-stat-row">
+                        <span class="igt-label">🔥 Canicules</span>
+                        <span class="igt-val" style="color: var(--text-primary)">${caniculeVal}</span>
+                    </div>
                 </div>
+                <div class="igt-popup-footer" style="color: var(--text-muted)">Données pour ${simulationMode === "single" ? simulationYear : rangeStartYear + "-" + rangeEndYear}</div>
+            `;
+        } else if (mode === 'defor') {
+            let loss = deforData[city] || 0;
+            if (isFrance(city)) {
+                loss = 0;
+                const isWithDom = (city === "France (avec Outre-mer)");
+                Object.keys(deforData).forEach(key => {
+                    const isDom = /\((97\d|98\d)\)$/.test(key);
+                    if (isWithDom || !isDom) {
+                        loss += deforData[key] || 0;
+                    }
+                });
+            }
+            panel.innerHTML = `
+                ${closeBtnHtml}
+                <h3><i class="fa-solid fa-tree"></i> ${getDisplayName(city)}</h3>
+                <div class="igt-stats">
+                    <div class="igt-stat-row">
+                        <span class="igt-label">🌳 Perte forestière</span>
+                        <span class="igt-val" style="color: var(--accent-sun)">${Math.round(loss).toLocaleString()} ha</span>
+                    </div>
+                </div>
+                <div class="igt-popup-footer" style="color: var(--text-muted)">Source Global Forest Watch (2025)</div>
             `;
         } else {
-            const cityIgt = igtData[city];
+            let cityIgt = igtData[city];
+            if (isFrance(city)) {
+                const isWithDom = (city === "France (avec Outre-mer)");
+                // Aggregate departments for France total
+                cityIgt = {
+                    Residentiel: 0,
+                    Routier: 0,
+                    "Industrie (hors prod. centr. d'énergie)": 0,
+                    Tertiaire: 0,
+                    Agriculture: 0,
+                    TOTAL_CO2e: 0
+                };
+                Object.keys(igtData).forEach(key => {
+                    const dept = igtData[key];
+                    const isDom = /\((97\d|98\d)\)$/.test(key);
+                    if (isWithDom || !isDom) {
+                        cityIgt.Residentiel += (dept.Residentiel || 0);
+                        cityIgt.Routier += (dept.Routier || 0);
+                        cityIgt["Industrie (hors prod. centr. d'énergie)"] += (dept["Industrie (hors prod. centr. d'énergie)"] || 0);
+                        cityIgt.Tertiaire += (dept.Tertiaire || 0);
+                        cityIgt.Agriculture += (dept.Agriculture || 0);
+                        cityIgt.TOTAL_CO2e += (dept.TOTAL_CO2e || 0);
+                    }
+                });
+            }
+
             if (!cityIgt) return;
             const total = cityIgt.TOTAL_CO2e || 0;
             const sectors = [
@@ -356,8 +736,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 { l: "🚜 Agriculture", v: cityIgt.Agriculture }
             ].sort((a,b) => b.v - a.v);
 
-            const icon = (city === "France") ? "fa-solid fa-flag" : "fa-solid fa-industry";
+            const icon = isFrance(city) ? "fa-solid fa-flag" : "fa-solid fa-industry";
             panel.innerHTML = `
+                ${closeBtnHtml}
                 <h3><i class="${icon}"></i> ${getDisplayName(city)}</h3>
                 <div class="igt-stats">
                     ${sectors.slice(0, 3).map(s => `
@@ -377,18 +758,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         panel.classList.remove('hidden');
     }
-
-    // Hide panel on layer switch
-    const oldSwitchMapLayer = switchMapLayer;
-    switchMapLayer = function(layer) {
-        document.getElementById('map-info-panel').classList.add('hidden');
-        oldSwitchMapLayer(layer);
-    };
-
-    // Close panel on map click
-    map.on('click', () => {
-        document.getElementById('map-info-panel').classList.add('hidden');
-    });
     
     function updateDashboard(city) {
         // Filter historical and current data
@@ -504,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProjectionsChart(filteredCityData, cityProjections);
 
         // Update Advice Engine (Step 5)
-        updateAdvice(displayData);
+        updateAdvice(displayData, city);
 
         // Update Performance Table (Step 3)
         updatePerformanceTable(city);
@@ -514,6 +883,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update New Charts (Step 2)
         renderGHGSectorChart();
+
+        // Update Map Styles dynamically
+        updateMapStyles();
+
+        // Update Map Info Panel if visible
+        const panel = document.getElementById('map-info-panel');
+        if (panel && !panel.classList.contains('hidden')) {
+            showMapInfo(city, currentLayer);
+        }
     }
     
     function updateStatCard(id, value, anomaly = null) {
@@ -557,8 +935,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: 'Température Moyenne (°C)',
                         data: tmData,
-                        borderColor: '#00d2ff',
-                        backgroundColor: 'rgba(0, 210, 255, 0.1)',
+                        borderColor: '#3a8c6e',
+                        backgroundColor: 'rgba(58, 140, 110, 0.06)',
                         fill: true,
                         tension: 0.4,
                         yAxisID: 'y'
@@ -566,8 +944,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: 'Précipitations (mm)',
                         data: rrData,
-                        borderColor: '#3aedc4',
-                        backgroundColor: 'rgba(58, 237, 196, 0.2)',
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
                         type: 'bar',
                         yAxisID: 'y1'
                     }
@@ -581,19 +959,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: {
                         type: 'linear',
                         position: 'left',
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#cbd5e1' }
+                        grid: { color: '#e5e5e5' },
+                        ticks: { color: '#161616' }
                     },
                     y1: {
                         type: 'linear',
                         position: 'right',
                         grid: { drawOnChartArea: false },
-                        ticks: { color: '#cbd5e1' }
+                        ticks: { color: '#161616' }
                     },
                     x: {
                         grid: { display: false },
                         ticks: { 
-                            color: '#cbd5e1',
+                            color: '#161616',
                             maxRotation: 0,
                             autoSkip: true,
                             maxTicksLimit: 25,
@@ -602,13 +980,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         title: {
                             display: true,
                             text: 'Année',
-                            color: '#cbd5e1',
+                            color: '#161616',
                             font: { size: 14 }
                         }
                     }
                 },
                 plugins: {
-                    legend: { labels: { color: '#f8fafc', font: { family: 'Inter' } } },
+                    legend: { labels: { color: '#161616', font: { family: 'Inter' } } },
                     datalabels: {
                         display: (context) => {
                             // Only show for Temperature (Dataset 0), hide for Precipitation (Dataset 1)
@@ -651,14 +1029,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: 'Saison chaude (>25°C)',
                         data: hotData,
-                        backgroundColor: 'rgba(255, 154, 62, 0.7)',
-                        borderRadius: 6
+                        backgroundColor: 'rgba(239, 112, 37, 0.8)',
+                        borderRadius: 4
                     },
                     {
                         label: 'Jours de gel',
                         data: frostData,
-                        backgroundColor: 'rgba(0, 210, 255, 0.5)',
-                        borderRadius: 6
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                        borderRadius: 4
                     }
                 ]
             },
@@ -671,17 +1049,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         stacked: true, 
                         grid: { display: false }, 
                         ticks: { 
-                            color: '#cbd5e1',
+                            color: '#161616',
                             autoSkip: true,
                             maxTicksLimit: 25,
                             display: true,
                             font: { weight: 'bold' }
                         } 
                     },
-                    y: { stacked: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#cbd5e1' } }
+                    y: { stacked: true, grid: { color: '#e5e5e5' }, ticks: { color: '#161616' } }
                 },
                 plugins: {
-                    legend: { labels: { color: '#f8fafc' } },
+                    legend: { labels: { color: '#161616' } },
                     datalabels: {
                         display: true,
                         color: '#ffffff',
@@ -715,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Anomalie Thermique (°C)',
                     data: anomalyData,
-                    backgroundColor: anomalyData.map(v => v > 0 ? 'rgba(255, 77, 77, 0.7)' : 'rgba(0, 210, 255, 0.7)'),
+                    backgroundColor: anomalyData.map(v => v > 0 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(56, 189, 248, 0.7)'),
                     borderRadius: 4
                 }]
             },
@@ -728,14 +1106,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         grid: { display: false }, 
                         position: 'bottom',
                         ticks: { 
-                            color: '#cbd5e1',
+                            color: '#161616',
                             autoSkip: true,
                             maxTicksLimit: 25,
                             display: true,
                             font: { weight: 'bold' }
                         } 
                     },
-                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#cbd5e1' } }
+                    y: { grid: { color: '#e5e5e5' }, ticks: { color: '#161616' } }
                 },
                 plugins: {
                     legend: { display: false },
@@ -797,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: 'Évolution Réelle (vs aujourd\'hui)',
                         data: historicalDelta,
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderColor: '#9ca3af',
                         borderWidth: 2,
                         pointRadius: 0,
                         fill: false
@@ -805,23 +1183,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: currentFrame === 'RCP' ? 'Scénario Optimiste (RCP 2.6)' : 'Scénario Durable (SSP1-2.6)',
                         data: optData,
-                        borderColor: '#3aedc4',
+                        borderColor: '#22c55e',
                         borderDash: [5, 5],
-                        borderWidth: 2,
+                        borderWidth: 2.5,
                         pointRadius: 0,
                         fill: false
                     },
                     {
-                        label: currentFrame === 'RCP' ? 'Scénario Median (RCP 4.5)' : 'Scénario Modéré (SSP2-4.5)',
+                        label: currentFrame === 'RCP' ? 'Scénario Réaliste (RCP 4.5)' : 'Scénario Modéré (SSP2-4.5)',
                         data: medData,
-                        borderColor: '#00d2ff',
+                        borderColor: '#38bdf8',
                         borderWidth: 3,
                         pointRadius: 0,
                         fill: false
                     },
                     {
                         label: currentFrame === 'RCP' ? 'Scénario Pessimiste (RCP 8.5)' : 'Scénario Fossile (SSP5-8.5)',
-                        borderColor: '#ff4d4d',
+                        borderColor: '#ef4444',
                         data: pesData,
                         borderWidth: 3,
                         pointRadius: 0,
@@ -835,15 +1213,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 layout: { padding: { bottom: 20, left: 10, right: 10 } },
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { grid: { display: false }, ticks: { color: '#cbd5e1', maxRotation: 0 } },
+                    x: { grid: { display: false }, ticks: { color: '#161616', maxRotation: 0 } },
                     y: { 
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
-                        ticks: { color: '#cbd5e1' }, 
-                        title: { display: true, text: 'Augmentation de Température (°C)', color: '#cbd5e1' } 
+                        grid: { color: '#e5e5e5' }, 
+                        ticks: { color: '#161616' }, 
+                        title: { display: true, text: 'Augmentation de Température (°C)', color: '#161616' } 
                     }
                 },
                 plugins: {
-                    legend: { position: 'top', labels: { color: '#f8fafc' } },
+                    legend: { position: 'top', labels: { color: '#161616' } },
                     tooltip: { 
                         backgroundColor: 'rgba(0,0,0,0.8)',
                         callbacks: {
@@ -878,58 +1256,280 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function updateAdvice(data) {
+    function updateAdvice(data, city) {
         const container = document.getElementById('adviceContainer');
         if (!container) return;
         container.innerHTML = "";
 
         const advices = [];
 
-        // Rules based on Step 5 requirements
-        if (data.TM > 15 || (data.DAYS_CANICULE && data.DAYS_CANICULE > 2)) {
-            advices.push({
-                icon: "fa-solid fa-temperature-arrow-up",
-                title: "Risque Caniculaire",
+        // Dynamic local ecological plan card
+        let localAction = {};
+
+        if (currentProfile === 'collectivite') {
+            // COLLECTIVITE / DECIDEUR PUBLIC ACTIONS
+            localAction = {
+                icon: "fa-solid fa-map-pin",
+                title: "Actions Locales (PCAET)",
                 items: [
-                    "Végétalisation des façades et toitures",
-                    "Installation de dispositifs de rafraîchissement urbain",
-                    "Adaptation des horaires de travail"
+                    "Développement des énergies renouvelables locales",
+                    "Végétalisation et lutte contre les îlots de chaleur",
+                    "Rénovation énergétique des bâtiments publics"
+                ]
+            };
+
+            if (isFrance(city)) {
+                localAction = {
+                    icon: "fa-solid fa-flag",
+                    title: "Plan National (PNACC 3)",
+                    items: [
+                        "Stratégie nationale bas-carbone (Neutralité 2050)",
+                        "Fonds Vert pour soutenir la transition locale",
+                        "Développement des transports doux et ferroviaires"
+                    ]
+                };
+            } else if (city.includes("Paris")) {
+                localAction = {
+                    icon: "fa-solid fa-tree",
+                    title: "Transition à Paris",
+                    items: [
+                        "ZFE : Interdiction Crit'Air 4 et 5 étendue",
+                        "Végétalisation : 500 cours d'écoles d'ici 2030",
+                        "Déplacement : 1000 km de pistes cyclables d'ici 2026"
+                    ]
+                };
+            } else if (city.includes("Marseille") || city.includes("Bouches-du-Rhône")) {
+                localAction = {
+                    icon: "fa-solid fa-anchor",
+                    title: "Transition à Marseille",
+                    items: [
+                        "Électrification des quais de navires au port",
+                        "Déploiement de la ZFE et transports décarbonés",
+                        "Plan Écoles : Rénovation thermique globale"
+                    ]
+                };
+            } else if (city.includes("Lyon") || city.includes("Rhône")) {
+                localAction = {
+                    icon: "fa-solid fa-bicycle",
+                    title: "Transition à Lyon",
+                    items: [
+                        "Voies Lyonnaises : Réseau cyclable structurant",
+                        "ZFE renforcée et logistique urbaine décarbonée",
+                        "Plan Canopée : Plantation de 300 000 arbres"
+                    ]
+                };
+            } else if (city.includes("Bordeaux") || city.includes("Gironde")) {
+                localAction = {
+                    icon: "fa-solid fa-droplet",
+                    title: "Transition en Gironde",
+                    items: [
+                        "Réseau express vélo métropolitain",
+                        "Déploiement ZFE et covoiturage obligatoire",
+                        "Reboisement et aménagement des forêts"
+                    ]
+                };
+            } else if (city.includes("Nantes") || city.includes("Loire-Atlantique")) {
+                localAction = {
+                    icon: "fa-solid fa-bus",
+                    title: "Transition à Nantes",
+                    items: [
+                        "Expansion du réseau de chronobus et tramways",
+                        "Pacte Vert : réduction de l'étalement urbain",
+                        "Trame verte et bleue pour la biodiversité de la Loire"
+                    ]
+                };
+            } else if (city.includes("Lille") || city.includes("Nord")) {
+                localAction = {
+                    icon: "fa-solid fa-building-shield",
+                    title: "Transition dans le Nord",
+                    items: [
+                        "Rénovation thermique massive des logements du Nord",
+                        "Décarbonation industrielle du port de Dunkerque",
+                        "Réseau express grand Lille de transports en commun"
+                    ]
+                };
+            }
+            
+            advices.push(localAction);
+
+            // Rules based on weather data
+            if (data.TM > 15 || (data.DAYS_CANICULE && data.DAYS_CANICULE > 2)) {
+                advices.push({
+                    icon: "fa-solid fa-temperature-arrow-up",
+                    title: "Risque Caniculaire (Public)",
+                    items: [
+                        "Aménager des îlots de fraîcheur urbains (brumisateurs, parcs)",
+                        "Végétaliser les cours d'école (cours Oasis)",
+                        "Activer le registre nominatif d'alerte canicule"
+                    ]
+                });
+            }
+
+            if (data.DRY_SPELL_MAX > 15 || (data.RR_TOTAL && data.RR_TOTAL < 600)) {
+                advices.push({
+                    icon: "fa-solid fa-droplet-slash",
+                    title: "Stress Hydrique (Public)",
+                    items: [
+                        "Moderniser les réseaux d'eau pour limiter les fuites",
+                        "Mettre en place une tarification progressive de l'eau",
+                        "Imposer le recyclage des eaux grises dans les constructions"
+                    ]
+                });
+            }
+
+            advices.push({
+                icon: "fa-solid fa-car-side",
+                title: "Empreinte Carbone (Public)",
+                items: [
+                    "Rénover énergétiquement les bâtiments publics et HLM",
+                    "Développer le réseau de transports en commun propres",
+                    "Soutenir la transition agroécologique locale"
                 ]
             });
-        }
 
-        if (data.DRY_SPELL_MAX > 15 || (data.RR_TOTAL && data.RR_TOTAL < 600)) {
-            advices.push({
-                icon: "fa-solid fa-droplet-slash",
-                title: "Stress Hydrique",
+            if ((data.DAYS_CANICULE && data.DAYS_CANICULE > 5) || data.DRY_SPELL_MAX > 20) {
+                advices.push({
+                    icon: "fa-solid fa-fire",
+                    title: "Prévention Incendies (Public)",
+                    items: [
+                        "Obliger et contrôler le débroussaillement réglementaire",
+                        "Créer et entretenir des pistes d'accès pour les pompiers",
+                        "Mettre en place des capteurs de détection précoce"
+                    ]
+                });
+            }
+        } else {
+            // CITOYEN / PARTICULIER ACTIONS
+            localAction = {
+                icon: "fa-solid fa-map-pin",
+                title: "Actions Citoyennes",
                 items: [
-                    "Réduction de la consommation d'eau",
-                    "Installation de récupérateurs d'eau de pluie",
-                    "Sélection de plantes résistantes"
+                    "Participer aux chantiers locaux de végétalisation",
+                    "Acheter local et de saison pour réduire l'impact transport",
+                    "Sensibiliser ses proches aux éco-gestes quotidiens"
+                ]
+            };
+
+            if (isFrance(city)) {
+                localAction = {
+                    icon: "fa-solid fa-flag",
+                    title: "Sobriété Nationale",
+                    items: [
+                        "Privilégier le covoiturage et les transports en commun",
+                        "Réduire le chauffage individuel à 19°C maximum",
+                        "Réduire la consommation de viande et produits importés"
+                    ]
+                };
+            } else if (city.includes("Paris")) {
+                localAction = {
+                    icon: "fa-solid fa-tree",
+                    title: "Transition à Paris (Citoyen)",
+                    items: [
+                        "Utiliser le réseau Vélib' et les pistes cyclables",
+                        "Participer aux projets de végétalisation citoyenne",
+                        "Respecter les vignettes Crit'Air en cas de pic de pollution"
+                    ]
+                };
+            } else if (city.includes("Marseille") || city.includes("Bouches-du-Rhône")) {
+                localAction = {
+                    icon: "fa-solid fa-anchor",
+                    title: "Transition à Marseille (Citoyen)",
+                    items: [
+                        "Préférer les navettes maritimes et vélos en libre-service",
+                        "Économiser l'eau lors des sécheresses estivales",
+                        "Participer aux nettoyages citoyens des plages"
+                    ]
+                };
+            } else if (city.includes("Lyon") || city.includes("Rhône")) {
+                localAction = {
+                    icon: "fa-solid fa-bicycle",
+                    title: "Transition à Lyon (Citoyen)",
+                    items: [
+                        "Emprunter le réseau cyclable des Voies Lyonnaises",
+                        "Isoler son logement avec l'aide des aides de la Métropole",
+                        "Végétaliser sa rue via le permis de végétaliser lyonnais"
+                    ]
+                };
+            } else if (city.includes("Bordeaux") || city.includes("Gironde")) {
+                localAction = {
+                    icon: "fa-solid fa-droplet",
+                    title: "Transition en Gironde (Citoyen)",
+                    items: [
+                        "Utiliser le Réseau Express Vélo de la métropole",
+                        "Privilégier le covoiturage sur les voies réservées",
+                        "Respecter le calendrier d'interdiction des feux de forêt"
+                    ]
+                };
+            } else if (city.includes("Nantes") || city.includes("Loire-Atlantique")) {
+                localAction = {
+                    icon: "fa-solid fa-bus",
+                    title: "Transition à Nantes (Citoyen)",
+                    items: [
+                        "Utiliser les parkings relais et transports Naolib",
+                        "Installer des composteurs individuels ou de quartier",
+                        "Soutenir les AMAP et producteurs locaux de la Loire"
+                    ]
+                };
+            } else if (city.includes("Lille") || city.includes("Nord")) {
+                localAction = {
+                    icon: "fa-solid fa-building-shield",
+                    title: "Transition dans le Nord (Citoyen)",
+                    items: [
+                        "Réaliser un diagnostic énergétique de sa maison",
+                        "Préférer le train TER pour les trajets régionaux",
+                        "Récupérer et composter ses biodéchets à domicile"
+                    ]
+                };
+            }
+
+            advices.push(localAction);
+
+            // Rules based on weather data
+            if (data.TM > 15 || (data.DAYS_CANICULE && data.DAYS_CANICULE > 2)) {
+                advices.push({
+                    icon: "fa-solid fa-temperature-arrow-up",
+                    title: "Risque Caniculaire (Personnel)",
+                    items: [
+                        "S'hydrater régulièrement et fermer les volets en journée",
+                        "Prendre des nouvelles des voisins isolés ou âgés",
+                        "Fréquenter les parcs arborés et zones ombragées"
+                    ]
+                });
+            }
+
+            if (data.DRY_SPELL_MAX > 15 || (data.RR_TOTAL && data.RR_TOTAL < 600)) {
+                advices.push({
+                    icon: "fa-solid fa-droplet-slash",
+                    title: "Stress Hydrique (Personnel)",
+                    items: [
+                        "Installer un récupérateur d'eau pour arroser ses plantes",
+                        "Couper l'eau pendant le brossage et préférer les douches courtes",
+                        "Équiper ses robinets de mousseurs d'eau économiseurs"
+                    ]
+                });
+            }
+
+            advices.push({
+                icon: "fa-solid fa-car-side",
+                title: "Empreinte Carbone (Personnel)",
+                items: [
+                    "Privilégier le vélo ou la marche pour les trajets courts",
+                    "Acheter des appareils de classe A et réparer au lieu de jeter",
+                    "Privilégier le train à l'avion pour les vacances"
                 ]
             });
-        }
 
-        advices.push({
-            icon: "fa-solid fa-car-side",
-            title: "Empreinte Carbone",
-            items: [
-                "Privilégier les mobilités douces",
-                "Transition vers une alimentation bas carbone",
-                "Rénovation énergétique des bâtiments"
-            ]
-        });
-
-        if ((data.DAYS_CANICULE && data.DAYS_CANICULE > 5) || data.DRY_SPELL_MAX > 20) {
-            advices.push({
-                icon: "fa-solid fa-fire",
-                title: "Prévention Incendies",
-                items: [
-                    "Débroussaillage des abords habités",
-                    "Aménagement de zones anti-incendie",
-                    "Vigilance accrue en période de vent"
-                ]
-            });
+            if ((data.DAYS_CANICULE && data.DAYS_CANICULE > 5) || data.DRY_SPELL_MAX > 20) {
+                advices.push({
+                    icon: "fa-solid fa-fire",
+                    title: "Prévention Incendies (Personnel)",
+                    items: [
+                        "Ne jamais jeter de mégot en extérieur ni faire de barbecue près des bois",
+                        "Débroussailler le terrain autour de son habitation principale",
+                        "Signaler immédiatement tout départ de fumée au 18 ou 112"
+                    ]
+                });
+            }
         }
 
         advices.forEach(adv => {
@@ -955,8 +1555,31 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("Pas de données de performance chargées.");
             return;
         }
-        console.log("Performance Data Columns (first item):", Object.keys(performanceData[0]));
-        const cityPerf = performanceData.filter(p => p.VILLE === city && p.MODEL === currentModel);
+
+        let cityPerf = [];
+        if (isFrance(city)) {
+            const modelPerf = performanceData.filter(p => p.MODEL === currentModel);
+            const indicators = [...new Set(modelPerf.map(p => p.INDICATEUR))];
+            
+            indicators.forEach(ind => {
+                const indData = modelPerf.filter(p => p.INDICATEUR === ind);
+                if (indData.length > 0) {
+                    const count = indData.length;
+                    const avgRMSE = indData.reduce((sum, p) => sum + (p.RMSE || 0), 0) / count;
+                    const avgMAE = indData.reduce((sum, p) => sum + (p.MAE || 0), 0) / count;
+                    const avgMAPE = indData.reduce((sum, p) => sum + (p.MAPE_PCT || 0), 0) / count;
+                    cityPerf.push({
+                        INDICATEUR: ind,
+                        MODEL: currentModel,
+                        RMSE: avgRMSE,
+                        MAE: avgMAE,
+                        MAPE_PCT: avgMAPE
+                    });
+                }
+            });
+        } else {
+            cityPerf = performanceData.filter(p => p.VILLE === city && p.MODEL === currentModel);
+        }
         
         cityPerf.forEach(p => {
             const precision = Math.max(0, 100 - p.MAPE_PCT).toFixed(1);
@@ -966,9 +1589,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td><b>${p.INDICATEUR}</b></td>
                 <td>${p.MODEL}</td>
-                <td>${p.RMSE}</td>
-                <td>${p.MAE}</td>
-                <td>${p.MAPE_PCT}%</td>
+                <td>${(p.RMSE || 0).toFixed(2)}</td>
+                <td>${(p.MAE || 0).toFixed(2)}</td>
+                <td>${(p.MAPE_PCT || 0).toFixed(1)}%</td>
                 <td><span class="metric-badge ${badgeClass}">${precision}%</span></td>
             `;
             tableBody.appendChild(tr);
@@ -1040,7 +1663,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: ['#3aedc4', '#f8fafc', '#00d2ff', '#fbbf24', '#ff4d4d', '#cbd5e1'],
+                    backgroundColor: ['#3a8c6e', '#22c55e', '#ef4444', '#38bdf8', '#f59e0b', '#9ca3af'],
                     borderWidth: 0
                 }]
             },
@@ -1059,7 +1682,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     legend: {
                         position: 'right',
                         labels: {
-                            color: '#ffffff',
+                            color: '#161616',
                             font: { size: 11, weight: 'bold' },
                             padding: 15,
                             boxWidth: 15
@@ -1106,7 +1729,223 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         chatMsgs.appendChild(div);
-        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+        
+        if (type === 'bot') {
+            // Scroll to the top of the new bot response smoothly
+            setTimeout(() => {
+                chatMsgs.scrollTo({
+                    top: div.offsetTop - 10,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        } else {
+            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+        }
+        
         return id;
+    }
+
+    // --- Tooltip & Profile Selector Helpers ---
+
+    const TOOLTIP_TEXTS = {
+        citoyen: {
+            "temp-slider": "Faites glisser les curseurs pour définir la période d'années que vous souhaitez analyser (ex: de 1990 à 2025).",
+            "city-select": "Sélectionnez votre département pour charger les observations historiques et les projections météo près de chez vous.",
+            "card-tm": "Température moyenne annuelle sur le territoire sélectionné (moyenne filtrée des relevés de la station).",
+            "card-canicule": "Nombre moyen de journées extrêmement chaudes où le thermomètre dépasse 35°C dans l'année.",
+            "card-tropical": "Nombre de nuits où la température ne descend pas sous 20°C, rendant le sommeil difficile.",
+            "card-gel": "Nombre de jours dans l'année où la température minimale est inférieure à 0°C (gel hivernal).",
+            "card-anom": "Écart de température par rapport aux normales historiques. Si c'est positif (rouge), il fait anormalement chaud.",
+            "card-rr": "Cumul total de pluie et neige mesuré sur l'année en millimètres (1 mm = 1 litre d'eau par m²).",
+            "card-dryspell": "Le plus grand nombre de jours consécutifs avec moins de 1 mm de pluie, signalant le risque de sécheresse.",
+            "card-hotseason": "Nombre de jours agréables ou chauds où la température maximale dépasse 25°C.",
+            "map-layers": "Boutons pour basculer la carte entre les températures moyennes (Météo) ou les émissions de gaz à effet de serre du département (Émissions).",
+            "chart-evolution": "Graphique combiné montrant la tendance des températures moyennes (ligne bleue) et des pluies (barres vertes) au fil des ans.",
+            "chart-anomaly": "Visualisation de l'écart thermique annuel : les barres rouges indiquent les années plus chaudes que la normale de référence.",
+            "chart-extreme": "Évolution comparée du nombre de jours de gel (froid, en bleu) et de jours de saison chaude (chaleur, en orange).",
+            "chart-sector": "Répartition par secteurs d'activité de l'empreinte carbone annuelle de votre département (données IGT Citepa).",
+            "chart-projection": "Simulation de la hausse de température jusqu'en 2100 selon 3 scénarios du GIEC (écologique en vert, modéré en bleu, polluant en rouge).",
+            "performance-table": "Scores d'évaluation statistique montrant l'écart moyen entre les calculs de nos modèles d'IA et les mesures historiques réelles.",
+            "methodology-section": "Explications sur la provenance de nos données (Open-Meteo, Citepa, GIEC) et les critères géographiques de notre étude.",
+            "actions-section": "Suggestions concrètes d'initiatives à adopter à l'échelle individuelle ou locale pour lutter contre le dérèglement.",
+            "climabot-chat": "Posez vos questions à ClimaBot pour obtenir des chiffres météo locaux précis ou des conseils d'actions écologiques."
+        },
+        collectivite: {
+            "temp-slider": "Bornage de la fenêtre temporelle d'analyse historique et projective pour le diagnostic climatique local et les rapports PCAET.",
+            "city-select": "Sélection de la maille territoriale départementale de référence pour l'édition de bilans climatiques réglementaires.",
+            "card-tm": "Température moyenne annuelle agrégée. Indicateur d'exposition thermique de référence pour l'analyse des vulnérabilités locales.",
+            "card-canicule": "Indicateur de vagues de chaleur sévères (Tmax > 35°C). Indicateur réglementaire pour le Plan de Gestion des Vagues de Chaleur.",
+            "card-tropical": "Indicateur d'îlots de chaleur urbains (ICU) nocturnes (Tmin >= 20°C). Indicateur clé d'impact sur la santé publique.",
+            "card-gel": "Nombre de jours de gel (Tmin < 0°C). Indicateur d'aléa pour la viabilité hivernale, le secteur agricole et la demande de chauffage.",
+            "card-anom": "Anomalie thermique locale calculée par rapport à la baseline historique locale. Indicateur d'intensité du changement climatique.",
+            "card-rr": "Cumul annuel moyen des précipitations (en mm). Indicateur hydrologique pour la gestion de la ressource en eau et le risque de crues.",
+            "card-dryspell": "Durée maximale consécutive sans précipitation (>1 mm/jour). Indicateur d'aléa sécheresse pour le stress agricole et le risque incendie.",
+            "card-hotseason": "Nombre de jours avec température maximale supérieure à 25°C. Mesure de l'extension de la saison estivale et du confort d'été.",
+            "map-layers": "Basculez entre la carte d'exposition aux aléas thermiques (Météo) et la carte d'inventaire d'émissions de GES de l'Indicateur IGT (Émissions).",
+            "chart-evolution": "Chrono-série historique montrant la corrélation entre les tendances thermiques observées et les fluctuations de la pluviométrie locale.",
+            "chart-anomaly": "Suivi des anomalies de température annuelles par rapport à la période de référence. Permet d'identifier la récurrence des extrêmes.",
+            "chart-extreme": "Analyse croisée de la variabilité des extrêmes thermiques : diminution des jours de gel contre hausse des jours chauds (>25°C).",
+            "chart-sector": "Bilan d'émissions de gaz à effet de serre ventilé par grands secteurs économiques (format PCAET compatible avec la méthodologie Citepa).",
+            "chart-projection": "Trajectoires d'évolution thermique calées sur les profils de concentration du GIEC (RCP 2.6 optimiste, RCP 4.5 médian, RCP 8.5 pessimiste).",
+            "performance-table": "Métriques de validation statistique (RMSE, MAE, MAPE) calculées en phase de backtesting historique sur les années de test 2020-2025.",
+            "methodology-section": "Méthodologie de normalisation et d'agrégation spatio-temporelle des données brutes issues de Météo-France, Citepa et du GIEC.",
+            "actions-section": "Mesures réglementaires d'atténuation et d'adaptation préconisées pour les collectivités (Transports décarbonés, Rénovation tertiaire, PCAET).",
+            "climabot-chat": "Assistant conversationnel d'aide à la décision locale. Demandez des synthèses climatiques régionales ou des fiches d'action PCAET."
+        }
+    };
+
+    const globalTooltip = document.getElementById('global-tooltip');
+    
+    function showTooltip(element, text) {
+        if (!globalTooltip || !text) return;
+        globalTooltip.innerHTML = text;
+        globalTooltip.classList.remove('hidden');
+        
+        // Position relative to target element
+        const rect = element.getBoundingClientRect();
+        const tooltipWidth = globalTooltip.offsetWidth || 280;
+        const tooltipHeight = globalTooltip.offsetHeight || 80;
+        
+        // Align horizontally centered, and vertically above target
+        let x = rect.left + window.scrollX + rect.width / 2;
+        let y = rect.top + window.scrollY - 10;
+        
+        // Safety bounds checks to prevent clipping off screen
+        const padding = 12;
+        
+        // Prevent going off left edge
+        if (x - tooltipWidth / 2 < window.scrollX + padding) {
+            x = window.scrollX + padding + tooltipWidth / 2;
+        }
+        
+        // Prevent going off right edge
+        const rightMax = window.innerWidth + window.scrollX - padding;
+        if (x + tooltipWidth / 2 > rightMax) {
+            x = rightMax - tooltipWidth / 2;
+        }
+        
+        // Prevent going off top edge (flip to show below elements if clipped at the top)
+        if (rect.top - tooltipHeight - padding < 0) {
+            // Put below the trigger element instead of above
+            y = rect.bottom + window.scrollY + 10 + tooltipHeight;
+        }
+        
+        globalTooltip.style.left = `${x}px`;
+        globalTooltip.style.top = `${y}px`;
+    }
+    
+    function hideTooltip() {
+        if (globalTooltip) {
+            globalTooltip.classList.add('hidden');
+        }
+    }
+    
+    function setupTooltips() {
+        document.querySelectorAll('.info-tooltip').forEach(el => {
+            const tooltipId = el.getAttribute('data-tooltip-id');
+            
+            // Clean existing listeners to prevent leaks
+            el.onmouseenter = null;
+            el.onmouseleave = null;
+            el.onclick = null;
+            
+            el.addEventListener('mouseenter', (e) => {
+                const text = TOOLTIP_TEXTS[currentProfile][tooltipId] || "";
+                showTooltip(el, text);
+            });
+            
+            el.addEventListener('mouseleave', () => {
+                hideTooltip();
+            });
+            
+            // Toggle on click for mobile devices
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const text = TOOLTIP_TEXTS[currentProfile][tooltipId] || "";
+                if (globalTooltip.classList.contains('hidden')) {
+                    showTooltip(el, text);
+                } else {
+                    hideTooltip();
+                }
+            });
+        });
+    }
+    
+    // Hide tooltip on clicking anywhere outside
+    document.addEventListener('click', (e) => {
+        if (globalTooltip && !globalTooltip.classList.contains('hidden')) {
+            if (!e.target.closest('.info-tooltip')) {
+                hideTooltip();
+            }
+        }
+    });
+
+    function initProfileSwitcher() {
+        const btnCitoyen = document.getElementById('profileCitoyen');
+        const btnDecideur = document.getElementById('profileDecideur');
+        
+        if (!btnCitoyen || !btnDecideur) return;
+        
+        btnCitoyen.addEventListener('click', () => {
+            if (currentProfile === 'citoyen') return;
+            currentProfile = 'citoyen';
+            btnCitoyen.classList.add('active');
+            btnDecideur.classList.remove('active');
+            document.body.classList.remove('decideur-mode');
+            updateProfileContent();
+        });
+        
+        btnDecideur.addEventListener('click', () => {
+            if (currentProfile === 'collectivite') return;
+            currentProfile = 'collectivite';
+            btnDecideur.classList.add('active');
+            btnCitoyen.classList.remove('active');
+            document.body.classList.add('decideur-mode');
+            updateProfileContent();
+        });
+    }
+    
+    function updateProfileContent() {
+        // 1. Update text labels of headers
+        const labels = {
+            citoyen: {
+                "lblTM": "Température moyenne",
+                "lblCanicule": "Canicule (>35°C)",
+                "lblTropical": "Nuits Tropicales (>20°C)",
+                "lblGel": "Jours de Gel (<0°C)",
+                "lblAnom": "Réchauffement local",
+                "lblRR": "Pluie cumulée",
+                "lblDrySpell": "Sécheresse prolongée",
+                "lblHotSeason": "Jours Chauds (>25°C)",
+                "lblAgir": "Mes écogestes quotidiens"
+            },
+            collectivite: {
+                "lblTM": "Temp. Moyenne locale",
+                "lblCanicule": "Seuil de Canicule (Tmax > 35°C)",
+                "lblTropical": "Nuits Tropicales (ICU - Tmin > 20°C)",
+                "lblGel": "Jours de Gel (Tmin < 0°C)",
+                "lblAnom": "Anomalie Thermique Baseline",
+                "lblRR": "Pluviométrie annuelle",
+                "lblDrySpell": "Séquence Sèche (Hydrométrie)",
+                "lblHotSeason": "Saison Chaude (Tmax > 25°C)",
+                "lblAgir": "Actions Publiques PCAET & PNACC"
+            }
+        };
+        
+        const currentLabels = labels[currentProfile];
+        Object.keys(currentLabels).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerText = currentLabels[id];
+            }
+        });
+        
+        // 2. Refresh dynamic parts
+        if (currentCity) {
+            updateDashboard(currentCity);
+        }
+        
+        // 3. Resetup tooltip content listeners (to bind currentProfile values)
+        setupTooltips();
     }
 });

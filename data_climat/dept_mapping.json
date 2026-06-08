@@ -1,0 +1,842 @@
+{
+    "01": {
+        "code": "01",
+        "dept_name": "Ain",
+        "station_name": "Amberieu",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.9765,
+        "lon": 5.329333
+    },
+    "02": {
+        "code": "02",
+        "dept_name": "Aisne",
+        "station_name": "St Quentin",
+        "region": "Hauts-de-France",
+        "lat": 49.818333,
+        "lon": 3.206
+    },
+    "03": {
+        "code": "03",
+        "dept_name": "Allier",
+        "station_name": "Vichy-Charmeil",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 46.166667,
+        "lon": 3.398667
+    },
+    "04": {
+        "code": "04",
+        "dept_name": "Alpes-de-Haute-Provence",
+        "station_name": "Forcalquier",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 43.962833,
+        "lon": 5.784667
+    },
+    "05": {
+        "code": "05",
+        "dept_name": "Hautes-Alpes",
+        "station_name": "Embrun",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 44.571167,
+        "lon": 6.508667
+    },
+    "06": {
+        "code": "06",
+        "dept_name": "Alpes-Maritimes",
+        "station_name": "Antibes-Garoupe",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 43.564667,
+        "lon": 7.133
+    },
+    "07": {
+        "code": "07",
+        "dept_name": "Ardèche",
+        "station_name": "Alba La Romaine",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 44.539833,
+        "lon": 4.5825
+    },
+    "08": {
+        "code": "08",
+        "dept_name": "Ardennes",
+        "station_name": "Juniville",
+        "region": "Grand Est",
+        "lat": 49.397333,
+        "lon": 4.371667
+    },
+    "09": {
+        "code": "09",
+        "dept_name": "Ariège",
+        "station_name": "Belesta",
+        "region": "Occitanie",
+        "lat": 42.903833,
+        "lon": 1.936667
+    },
+    "10": {
+        "code": "10",
+        "dept_name": "Aube",
+        "station_name": "Romilly",
+        "region": "Grand Est",
+        "lat": 48.503333,
+        "lon": 3.7495
+    },
+    "11": {
+        "code": "11",
+        "dept_name": "Aude",
+        "station_name": "Arques",
+        "region": "Occitanie",
+        "lat": 42.951833,
+        "lon": 2.374833
+    },
+    "12": {
+        "code": "12",
+        "dept_name": "Aveyron",
+        "station_name": "Espalion",
+        "region": "Occitanie",
+        "lat": 44.515667,
+        "lon": 2.770167
+    },
+    "13": {
+        "code": "13",
+        "dept_name": "Bouches-du-Rhône",
+        "station_name": "Marignane",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 43.437,
+        "lon": 5.2115
+    },
+    "14": {
+        "code": "14",
+        "dept_name": "Calvados",
+        "station_name": "Caen-Carpiquet",
+        "region": "Normandie",
+        "lat": 49.18,
+        "lon": -0.456167
+    },
+    "15": {
+        "code": "15",
+        "dept_name": "Cantal",
+        "station_name": "Massiac",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.263333,
+        "lon": 3.197833
+    },
+    "16": {
+        "code": "16",
+        "dept_name": "Charente",
+        "station_name": "Cognac",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 45.665,
+        "lon": -0.315833
+    },
+    "17": {
+        "code": "17",
+        "dept_name": "Charente-Maritime",
+        "station_name": "Saintes",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 45.761167,
+        "lon": -0.652
+    },
+    "18": {
+        "code": "18",
+        "dept_name": "Cher",
+        "station_name": "Bourges",
+        "region": "Centre-Val de Loire",
+        "lat": 47.059167,
+        "lon": 2.359833
+    },
+    "19": {
+        "code": "19",
+        "dept_name": "Corrèze",
+        "station_name": "Argentat",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 45.101333,
+        "lon": 1.9375
+    },
+    "20": {
+        "code": "20",
+        "dept_name": "Corse",
+        "station_name": "Ajaccio",
+        "region": "Corse",
+        "lat": 41.918,
+        "lon": 8.792667
+    },
+    "21": {
+        "code": "21",
+        "dept_name": "Côte-d'Or",
+        "station_name": "Chatillon/Seine",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.849333,
+        "lon": 4.581333
+    },
+    "22": {
+        "code": "22",
+        "dept_name": "Côtes-d'Armor",
+        "station_name": "Ploumanac'H",
+        "region": "Bretagne",
+        "lat": 48.825833,
+        "lon": -3.473167
+    },
+    "23": {
+        "code": "23",
+        "dept_name": "Creuse",
+        "station_name": "Auzances_Sapc",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 46.0215,
+        "lon": 2.489333
+    },
+    "24": {
+        "code": "24",
+        "dept_name": "Dordogne",
+        "station_name": "Montignac",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 45.052167,
+        "lon": 1.147333
+    },
+    "25": {
+        "code": "25",
+        "dept_name": "Doubs",
+        "station_name": "Arc-Et-Senans",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.0315,
+        "lon": 5.782
+    },
+    "26": {
+        "code": "26",
+        "dept_name": "Drôme",
+        "station_name": "Montelimar",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 44.581167,
+        "lon": 4.733
+    },
+    "27": {
+        "code": "27",
+        "dept_name": "Eure",
+        "station_name": "Les Andelys",
+        "region": "Normandie",
+        "lat": 49.244667,
+        "lon": 1.412833
+    },
+    "28": {
+        "code": "28",
+        "dept_name": "Eure-et-Loir",
+        "station_name": "Sainville",
+        "region": "Centre-Val de Loire",
+        "lat": 48.403833,
+        "lon": 1.903167
+    },
+    "29": {
+        "code": "29",
+        "dept_name": "Finistère",
+        "station_name": "Brest-Guipavas",
+        "region": "Bretagne",
+        "lat": 48.453833,
+        "lon": -4.391167
+    },
+    "30": {
+        "code": "30",
+        "dept_name": "Gard",
+        "station_name": "Generargues",
+        "region": "Occitanie",
+        "lat": 44.073333,
+        "lon": 3.977667
+    },
+    "31": {
+        "code": "31",
+        "dept_name": "Haute-Garonne",
+        "station_name": "Toulouse-Blagnac",
+        "region": "Occitanie",
+        "lat": 43.621,
+        "lon": 1.378833
+    },
+    "32": {
+        "code": "32",
+        "dept_name": "Gers",
+        "station_name": "Lannepax",
+        "region": "Occitanie",
+        "lat": 43.792,
+        "lon": 0.208333
+    },
+    "33": {
+        "code": "33",
+        "dept_name": "Gironde",
+        "station_name": "Belin-Beliet",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 44.4935,
+        "lon": -0.7905
+    },
+    "34": {
+        "code": "34",
+        "dept_name": "Hérault",
+        "station_name": "Montpellier-Aeroport",
+        "region": "Occitanie",
+        "lat": 43.576167,
+        "lon": 3.964667
+    },
+    "35": {
+        "code": "35",
+        "dept_name": "Ille-et-Vilaine",
+        "station_name": "Dinard",
+        "region": "Bretagne",
+        "lat": 48.584833,
+        "lon": -2.076333
+    },
+    "36": {
+        "code": "36",
+        "dept_name": "Indre",
+        "station_name": "St-Christophe",
+        "region": "Centre-Val de Loire",
+        "lat": 46.679333,
+        "lon": 2.1245
+    },
+    "37": {
+        "code": "37",
+        "dept_name": "Indre-et-Loire",
+        "station_name": "Neuvy-Le-Roi",
+        "region": "Centre-Val de Loire",
+        "lat": 47.608,
+        "lon": 0.596
+    },
+    "38": {
+        "code": "38",
+        "dept_name": "Isère",
+        "station_name": "Charavines",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.432833,
+        "lon": 5.517333
+    },
+    "39": {
+        "code": "39",
+        "dept_name": "Jura",
+        "station_name": "Dole",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.063667,
+        "lon": 5.496
+    },
+    "40": {
+        "code": "40",
+        "dept_name": "Landes",
+        "station_name": "Mont-De-Marsan",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 43.909833,
+        "lon": -0.500167
+    },
+    "41": {
+        "code": "41",
+        "dept_name": "Loir-et-Cher",
+        "station_name": "Vendome",
+        "region": "Centre-Val de Loire",
+        "lat": 47.826667,
+        "lon": 1.054333
+    },
+    "42": {
+        "code": "42",
+        "dept_name": "Loire",
+        "station_name": "St Etienne-Boutheon",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.545667,
+        "lon": 4.293833
+    },
+    "43": {
+        "code": "43",
+        "dept_name": "Haute-Loire",
+        "station_name": "Le Puy-Chadrac",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.054667,
+        "lon": 3.8945
+    },
+    "44": {
+        "code": "44",
+        "dept_name": "Loire-Atlantique",
+        "station_name": "Nantes-Bouguenais",
+        "region": "Pays de la Loire",
+        "lat": 47.15,
+        "lon": -1.608833
+    },
+    "45": {
+        "code": "45",
+        "dept_name": "Loiret",
+        "station_name": "Marcilly-En-V.",
+        "region": "Centre-Val de Loire",
+        "lat": 47.769167,
+        "lon": 2.021833
+    },
+    "46": {
+        "code": "46",
+        "dept_name": "Lot",
+        "station_name": "Viazac - Laboud",
+        "region": "Occitanie",
+        "lat": 44.6625,
+        "lon": 2.073833
+    },
+    "47": {
+        "code": "47",
+        "dept_name": "Lot-et-Garonne",
+        "station_name": "Agen-La Garenne",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 44.172167,
+        "lon": 0.594667
+    },
+    "48": {
+        "code": "48",
+        "dept_name": "Lozère",
+        "station_name": "Florac",
+        "region": "Occitanie",
+        "lat": 44.309,
+        "lon": 3.596333
+    },
+    "49": {
+        "code": "49",
+        "dept_name": "Maine-et-Loire",
+        "station_name": "Begrolles",
+        "region": "Pays de la Loire",
+        "lat": 47.152167,
+        "lon": -0.937667
+    },
+    "50": {
+        "code": "50",
+        "dept_name": "Manche",
+        "station_name": "Pte De La Hague",
+        "region": "Normandie",
+        "lat": 49.725167,
+        "lon": -1.939833
+    },
+    "51": {
+        "code": "51",
+        "dept_name": "Marne",
+        "station_name": "Sommesous",
+        "region": "Grand Est",
+        "lat": 48.734167,
+        "lon": 4.2075
+    },
+    "52": {
+        "code": "52",
+        "dept_name": "Haute-Marne",
+        "station_name": "Langres",
+        "region": "Grand Est",
+        "lat": 47.843667,
+        "lon": 5.3375
+    },
+    "53": {
+        "code": "53",
+        "dept_name": "Mayenne",
+        "station_name": "Pre-En-Pail_Sapc",
+        "region": "Pays de la Loire",
+        "lat": 48.452,
+        "lon": -0.183167
+    },
+    "54": {
+        "code": "54",
+        "dept_name": "Meurthe-et-Moselle",
+        "station_name": "Nancy-Essey",
+        "region": "Grand Est",
+        "lat": 48.687833,
+        "lon": 6.2215
+    },
+    "55": {
+        "code": "55",
+        "dept_name": "Meuse",
+        "station_name": "Maxey-Sur-Vaise",
+        "region": "Grand Est",
+        "lat": 48.538167,
+        "lon": 5.668833
+    },
+    "56": {
+        "code": "56",
+        "dept_name": "Morbihan",
+        "station_name": "Belle Ile-Le Talut",
+        "region": "Bretagne",
+        "lat": 47.294333,
+        "lon": -3.218333
+    },
+    "57": {
+        "code": "57",
+        "dept_name": "Moselle",
+        "station_name": "Metz-Frescaty",
+        "region": "Grand Est",
+        "lat": 49.0695,
+        "lon": 6.125333
+    },
+    "58": {
+        "code": "58",
+        "dept_name": "Nièvre",
+        "station_name": "Chateau Chinon",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.070333,
+        "lon": 3.934333
+    },
+    "59": {
+        "code": "59",
+        "dept_name": "Nord",
+        "station_name": "Dunkerque",
+        "region": "Hauts-de-France",
+        "lat": 51.055833,
+        "lon": 2.3395
+    },
+    "60": {
+        "code": "60",
+        "dept_name": "Oise",
+        "station_name": "Beauvais-Tille",
+        "region": "Hauts-de-France",
+        "lat": 49.4465,
+        "lon": 2.127167
+    },
+    "61": {
+        "code": "61",
+        "dept_name": "Orne",
+        "station_name": "Alencon",
+        "region": "Normandie",
+        "lat": 48.4455,
+        "lon": 0.110167
+    },
+    "62": {
+        "code": "62",
+        "dept_name": "Pas-de-Calais",
+        "station_name": "Boulogne-Sem",
+        "region": "Hauts-de-France",
+        "lat": 50.7325,
+        "lon": 1.599667
+    },
+    "63": {
+        "code": "63",
+        "dept_name": "Puy-de-Dôme",
+        "station_name": "Chappes",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.860667,
+        "lon": 3.214333
+    },
+    "64": {
+        "code": "64",
+        "dept_name": "Pyrénées-Atlantiques",
+        "station_name": "Pomps",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 43.490833,
+        "lon": -0.5435
+    },
+    "65": {
+        "code": "65",
+        "dept_name": "Hautes-Pyrénées",
+        "station_name": "Tarbes-Lourdes-Pyrenees",
+        "region": "Occitanie",
+        "lat": 43.188,
+        "lon": 0.0
+    },
+    "66": {
+        "code": "66",
+        "dept_name": "Pyrénées-Orientales",
+        "station_name": "Cap Bear",
+        "region": "Occitanie",
+        "lat": 42.516167,
+        "lon": 3.133667
+    },
+    "67": {
+        "code": "67",
+        "dept_name": "Bas-Rhin",
+        "station_name": "Strasbourg-Entzheim",
+        "region": "Grand Est",
+        "lat": 48.5495,
+        "lon": 7.640333
+    },
+    "68": {
+        "code": "68",
+        "dept_name": "Haut-Rhin",
+        "station_name": "Bale-Mulhouse",
+        "region": "Grand Est",
+        "lat": 47.614333,
+        "lon": 7.51
+    },
+    "69": {
+        "code": "69",
+        "dept_name": "Rhône",
+        "station_name": "Lyon-Bron",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.721333,
+        "lon": 4.949167
+    },
+    "70": {
+        "code": "70",
+        "dept_name": "Haute-Saône",
+        "station_name": "Luxeuil",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.787,
+        "lon": 6.363833
+    },
+    "71": {
+        "code": "71",
+        "dept_name": "Saône-et-Loire",
+        "station_name": "Mt-St-Vincent",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 46.627667,
+        "lon": 4.477
+    },
+    "72": {
+        "code": "72",
+        "dept_name": "Sarthe",
+        "station_name": "Le Mans",
+        "region": "Pays de la Loire",
+        "lat": 47.945833,
+        "lon": 0.194167
+    },
+    "73": {
+        "code": "73",
+        "dept_name": "Savoie",
+        "station_name": "Bourg St Maurice",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 45.612667,
+        "lon": 6.763333
+    },
+    "74": {
+        "code": "74",
+        "dept_name": "Haute-Savoie",
+        "station_name": "Ayze",
+        "region": "Auvergne-Rhône-Alpes",
+        "lat": 46.0795,
+        "lon": 6.431333
+    },
+    "75": {
+        "code": "75",
+        "dept_name": "Paris",
+        "station_name": "Paris-Montsouris",
+        "region": "Île-de-France",
+        "lat": 48.821667,
+        "lon": 2.337833
+    },
+    "76": {
+        "code": "76",
+        "dept_name": "Seine-Maritime",
+        "station_name": "Cap-De-La-Heve",
+        "region": "Normandie",
+        "lat": 49.509,
+        "lon": 0.071167
+    },
+    "77": {
+        "code": "77",
+        "dept_name": "Seine-et-Marne",
+        "station_name": "Jouy-Le-Chatel",
+        "region": "Île-de-France",
+        "lat": 48.6895,
+        "lon": 3.125167
+    },
+    "78": {
+        "code": "78",
+        "dept_name": "Yvelines",
+        "station_name": "Villacoublay",
+        "region": "Île-de-France",
+        "lat": 48.7725,
+        "lon": 2.204
+    },
+    "79": {
+        "code": "79",
+        "dept_name": "Deux-Sèvres",
+        "station_name": "Menigoute_Sapc",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 46.494,
+        "lon": -0.064333
+    },
+    "80": {
+        "code": "80",
+        "dept_name": "Somme",
+        "station_name": "Abbeville",
+        "region": "Hauts-de-France",
+        "lat": 50.136,
+        "lon": 1.834
+    },
+    "81": {
+        "code": "81",
+        "dept_name": "Tarn",
+        "station_name": "Cordes",
+        "region": "Occitanie",
+        "lat": 44.074333,
+        "lon": 1.955833
+    },
+    "82": {
+        "code": "82",
+        "dept_name": "Tarn-et-Garonne",
+        "station_name": "Montauban",
+        "region": "Occitanie",
+        "lat": 44.028,
+        "lon": 1.376667
+    },
+    "83": {
+        "code": "83",
+        "dept_name": "Var",
+        "station_name": "Frejus",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 43.4235,
+        "lon": 6.738
+    },
+    "84": {
+        "code": "84",
+        "dept_name": "Vaucluse",
+        "station_name": "Lapalud",
+        "region": "Provence-Alpes-Côte d'Azur",
+        "lat": 44.3205,
+        "lon": 4.658167
+    },
+    "85": {
+        "code": "85",
+        "dept_name": "Vendée",
+        "station_name": "Chantonnay",
+        "region": "Pays de la Loire",
+        "lat": 46.693333,
+        "lon": -1.048333
+    },
+    "86": {
+        "code": "86",
+        "dept_name": "Vienne",
+        "station_name": "Poitiers-Biard",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 46.593833,
+        "lon": 0.314333
+    },
+    "87": {
+        "code": "87",
+        "dept_name": "Haute-Vienne",
+        "station_name": "Le Dorat",
+        "region": "Nouvelle-Aquitaine",
+        "lat": 46.220667,
+        "lon": 1.080667
+    },
+    "88": {
+        "code": "88",
+        "dept_name": "Vosges",
+        "station_name": "Remiremont",
+        "region": "Grand Est",
+        "lat": 48.019667,
+        "lon": 6.596667
+    },
+    "89": {
+        "code": "89",
+        "dept_name": "Yonne",
+        "station_name": "St Denis Les Sens",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 48.220833,
+        "lon": 3.266833
+    },
+    "90": {
+        "code": "90",
+        "dept_name": "Territoire de Belfort",
+        "station_name": "Joncherey",
+        "region": "Bourgogne-Franche-Comté",
+        "lat": 47.526167,
+        "lon": 7.003167
+    },
+    "91": {
+        "code": "91",
+        "dept_name": "Essonne",
+        "station_name": "Orly",
+        "region": "Île-de-France",
+        "lat": 48.718,
+        "lon": 2.397
+    },
+    "92": {
+        "code": "92",
+        "dept_name": "Hauts-de-Seine",
+        "station_name": "Suresnes",
+        "region": "Île-de-France",
+        "lat": 48.871333,
+        "lon": 2.235333
+    },
+    "93": {
+        "code": "93",
+        "dept_name": "Seine-Saint-Denis",
+        "station_name": "Neuilly-Sur-M.",
+        "region": "Île-de-France",
+        "lat": 48.859833,
+        "lon": 2.546333
+    },
+    "94": {
+        "code": "94",
+        "dept_name": "Val-de-Marne",
+        "station_name": "St-Maur",
+        "region": "Île-de-France",
+        "lat": 48.808667,
+        "lon": 2.492333
+    },
+    "95": {
+        "code": "95",
+        "dept_name": "Val-d'Oise",
+        "station_name": "Le Bourget",
+        "region": "Île-de-France",
+        "lat": 48.967333,
+        "lon": 2.427667
+    },
+    "971": {
+        "code": "971",
+        "dept_name": "Guadeloupe",
+        "station_name": "Le Raizet Aero",
+        "region": "Guadeloupe",
+        "lat": 16.264,
+        "lon": -61.516333
+    },
+    "972": {
+        "code": "972",
+        "dept_name": "Martinique",
+        "station_name": "Fort-De-France Desaix",
+        "region": "Martinique",
+        "lat": 14.617667,
+        "lon": -61.063833
+    },
+    "973": {
+        "code": "973",
+        "dept_name": "Guyane",
+        "station_name": "Cayenne-Matoury",
+        "region": "Guyane",
+        "lat": 4.822333,
+        "lon": -52.365333
+    },
+    "974": {
+        "code": "974",
+        "dept_name": "La Réunion",
+        "station_name": "Plaine Des Cafres",
+        "region": "La Réunion",
+        "lat": -21.209167,
+        "lon": 55.572833
+    },
+    "975": {
+        "code": "975",
+        "dept_name": "Saint-Pierre-et-Miquelon",
+        "station_name": "St-Pierre",
+        "region": "Saint-Pierre-et-Miquelon",
+        "lat": 46.766333,
+        "lon": -56.179167
+    },
+    "984": {
+        "code": "984",
+        "dept_name": "TAAF",
+        "station_name": "Nouvelle Amsterdam",
+        "region": "TAAF",
+        "lat": -37.795167,
+        "lon": 77.569167
+    },
+    "985": {
+        "code": "985",
+        "dept_name": "Mayotte",
+        "station_name": "Pamandzi",
+        "region": "Mayotte",
+        "lat": -12.8055,
+        "lon": 45.282833
+    },
+    "986": {
+        "code": "986",
+        "dept_name": "Wallis-et-Futuna",
+        "station_name": "Hihifo",
+        "region": "Wallis-et-Futuna",
+        "lat": -13.239833,
+        "lon": -176.194167
+    },
+    "987": {
+        "code": "987",
+        "dept_name": "Polynésie Française",
+        "station_name": "Pirae 1",
+        "region": "Polynésie Française",
+        "lat": -17.535833,
+        "lon": -149.539167
+    },
+    "988": {
+        "code": "988",
+        "dept_name": "Nouvelle-Calédonie",
+        "station_name": "La Tontouta",
+        "region": "Nouvelle-Calédonie",
+        "lat": -22.017333,
+        "lon": 166.222333
+    }
+}

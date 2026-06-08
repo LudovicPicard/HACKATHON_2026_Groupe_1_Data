@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClimaSphere | Intelligence Climatique & Écologie</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.6">
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,13 +41,25 @@
                         <input type="range" id="rangeStart" min="1850" max="2026" value="1990" class="premium-slider slider-multi">
                         <input type="range" id="rangeEnd" min="1850" max="2026" value="2026" class="premium-slider slider-multi">
                     </div>
+                    <span class="info-tooltip" data-tooltip-id="temp-slider"><i class="fa-solid fa-circle-question"></i></span>
                 </div>
             </div>
 
             <div class="controls">
+                <div class="profile-switcher-container">
+                    <div class="profile-switcher">
+                        <button id="profileCitoyen" class="profile-btn active" title="Profil Particulier / Citoyen">
+                            <i class="fa-solid fa-house"></i> <span>Citoyen</span>
+                        </button>
+                        <button id="profileDecideur" class="profile-btn" title="Profil Décideur Public / Collectivité">
+                            <i class="fa-solid fa-building"></i> <span>Décideur</span>
+                        </button>
+                    </div>
+                </div>
                 <select id="citySelect" class="glass-select">
                     <option value="">Sélectionnez un département...</option>
                 </select>
+                <span class="info-tooltip" data-tooltip-id="city-select"><i class="fa-solid fa-circle-question"></i></span>
             </div>
         </header>
 
@@ -56,7 +68,8 @@
                 <div class="glass-card stat-card" id="cardTM">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-temperature-half"></i>
-                        <h3>Temp. Moyenne</h3>
+                        <h3 id="lblTM">Temp. Moyenne</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-tm"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value" id="tm_val">-- °C</div>
                     <div class="gauge-container">
@@ -71,7 +84,8 @@
                 <div class="glass-card stat-card" id="cardCanicule">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-sun-plant-wilt"></i>
-                        <h3>Canicule</h3>
+                        <h3 id="lblCanicule">Canicule</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-canicule"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">--</div>
                     <p class="stat-desc">Jours > 35°C</p>
@@ -80,7 +94,8 @@
                 <div class="glass-card stat-card" id="cardTropical">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-moon"></i>
-                        <h3>Nuits Tropicales</h3>
+                        <h3 id="lblTropical">Nuits Tropicales</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-tropical"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">--</div>
                     <p class="stat-desc">Nuits > 20°C</p>
@@ -89,7 +104,8 @@
                 <div class="glass-card stat-card" id="cardGel">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-snowflake"></i>
-                        <h3>Jours de Gel</h3>
+                        <h3 id="lblGel">Jours de Gel</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-gel"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">--</div>
                     <p class="stat-desc">Température < 0°C</p>
@@ -98,7 +114,8 @@
                 <div class="glass-card stat-card" id="cardAnom">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-triangle-exclamation"></i>
-                        <h3>Anomalie Globale</h3>
+                        <h3 id="lblAnom">Anomalie Globale</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-anom"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value" id="anom_val">--.-°C</div>
                     <div class="gauge-container">
@@ -112,7 +129,8 @@
                 <div class="glass-card stat-card" id="cardRR">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-cloud-showers-heavy"></i>
-                        <h3>Pluie</h3>
+                        <h3 id="lblRR">Pluie</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-rr"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">-- mm</div>
                     <p class="stat-desc">Cumul annuel</p>
@@ -121,7 +139,8 @@
                 <div class="glass-card stat-card" id="cardDrySpell">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-droplet-slash"></i>
-                        <h3>Séquence Sèche</h3>
+                        <h3 id="lblDrySpell">Séquence Sèche</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-dryspell"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">--</div>
                     <p class="stat-desc">Max jours consécutifs</p>
@@ -130,7 +149,8 @@
                 <div class="glass-card stat-card" id="cardHotSeason">
                     <div class="card-icon-header">
                         <i class="fa-solid fa-sun"></i>
-                        <h3>Saison Chaude</h3>
+                        <h3 id="lblHotSeason">Saison Chaude</h3>
+                        <span class="info-tooltip" data-tooltip-id="card-hotseason"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="stat-value">--</div>
                     <p class="stat-desc">Jours > 25°C</p>
@@ -143,6 +163,17 @@
                     <div id="map-info-panel" class="map-info-panel hidden">
                         <!-- Content injected via JS -->
                     </div>
+                    <div id="map-legend" class="map-legend hidden">
+                        <div class="legend-title">Émissions CO2e (millions de tonnes)</div>
+                        <div class="legend-scale">
+                            <span class="scale-bar"></span>
+                            <div class="legend-labels">
+                                <span>< 1.0M (Bas)</span>
+                                <span>4.2M (Médian)</span>
+                                <span>> 8.0M (Élevé)</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="map-layer-toggle">
                         <button id="showMeteo" class="toggle-btn active" title="Stations Météo">
                             <i class="fa-solid fa-cloud-sun"></i>
@@ -150,6 +181,12 @@
                         <button id="showEmissions" class="toggle-btn" title="Émissions Territoriales (IGT)">
                             <i class="fa-solid fa-industry"></i>
                         </button>
+                        <button id="showDeforMap" class="toggle-btn" title="Déforestation (2025)">
+                            <i class="fa-solid fa-tree"></i>
+                        </button>
+                        <span class="info-tooltip" data-tooltip-id="map-layers" style="align-self: center; margin-top: 5px; cursor: help; color: var(--text-muted);">
+                            <i class="fa-solid fa-circle-question"></i>
+                        </span>
                     </div>
                 </div>
             </section>
@@ -159,12 +196,14 @@
                 <div class="glass-card main-chart-container">
                     <div class="card-header">
                         <h2><i class="fa-solid fa-chart-line"></i> Évolution Historique</h2>
+                        <span class="info-tooltip" data-tooltip-id="chart-evolution"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <canvas id="evolutionChart"></canvas>
                 </div>
                 <div class="glass-card side-chart-container">
                     <div class="card-header">
                         <h2><i class="fa-solid fa-chart-column"></i> Anomalies Globale</h2>
+                        <span class="info-tooltip" data-tooltip-id="chart-anomaly"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <canvas id="anomalyChart"></canvas>
                 </div>
@@ -174,6 +213,7 @@
                 <div class="glass-card side-chart-container">
                     <div class="card-header">
                         <h2><i class="fa-solid fa-chart-bar"></i> Extrêmes</h2>
+                        <span class="info-tooltip" data-tooltip-id="chart-extreme"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <canvas id="extremeDaysChart"></canvas>
                 </div>
@@ -183,6 +223,7 @@
                 <div class="glass-card full-chart-container">
                     <div class="card-header">
                         <h2><i class="fa-solid fa-chart-pie"></i> Émissions par Secteur (France - CITEPA)</h2>
+                        <span class="info-tooltip" data-tooltip-id="chart-sector"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <canvas id="ghgSectorChart"></canvas>
                 </div>
@@ -196,6 +237,7 @@
                             <h2><i class="fa-solid fa-earth-europe"></i> Trajectoires d'Échauffement (2030 - 2100)</h2>
                             <p class="card-subtitle">Augmentation de la température (°C) selon les scénarios GIEC</p>
                         </div>
+                        <span class="info-tooltip" data-tooltip-id="chart-projection" style="margin-left: 10px;"><i class="fa-solid fa-circle-question"></i></span>
                         <div class="chart-controls">
                             <select id="modelSelect" class="glass-select small-select">
                                 <option value="Prophet" selected>IA: Prophet</option>
@@ -219,6 +261,7 @@
                             <h2><i class="fa-solid fa-microchip"></i> Rigueur Scientifique & Précision IA</h2>
                             <p class="card-subtitle">Scores de performance des modèles sur les données historiques (Backtesting 2020-2025)</p>
                         </div>
+                        <span class="info-tooltip" data-tooltip-id="performance-table" style="margin-left: 10px;"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="performance-table-container">
                         <table class="performance-table" id="performanceTable">
@@ -248,16 +291,16 @@
                 <div class="glass-card methodology-card">
                     <div class="card-header">
                         <h2><i class="fa-solid fa-book-open"></i> Justification Territoriale & Méthodologie</h2>
+                        <span class="info-tooltip" data-tooltip-id="methodology-section"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div class="methodology-content">
                         <div class="method-box">
                             <h3><i class="fa-solid fa-map-location-dot"></i> Choix des Territoires</h3>
-                            <p>Nous avons sélectionné 6 villes représentatives de la <b>diversité climatique française</b> :</p>
+                            <p>Nous avons intégré <b>l'intégralité des départements de France</b> (105 entités métropolitaines et outre-mer) pour assurer une couverture nationale exhaustive :</p>
                             <ul>
-                                <li><b>Bordeaux & Nantes</b> : Façade Atlantique (Oceanique)</li>
-                                <li><b>Paris & Rennes</b> : Climat tempéré / Bassin Parisien</li>
-                                <li><b>Lyon</b> : Influence continentale et alpine</li>
-                                <li><b>Marseille</b> : Zone Méditerranéenne (forte vulnérabilité aux canicules)</li>
+                                <li><b>Représentation totale</b> : Des littoraux océaniques aux zones montagneuses et méditerranéennes.</li>
+                                <li><b>Précision locale</b> : Chaque département est cartographié et associé à sa station de référence.</li>
+                                <li><b>Agrégation nationale</b> : Intégration complète des données pour les calculs de moyennes globales (France).</li>
                             </ul>
                         </div>
                         <div class="method-box">
@@ -278,7 +321,8 @@
             <section id="agir" class="actions-section">
                 <div class="glass-card advice-card">
                     <div class="card-header">
-                        <h2><i class="fa-solid fa-leaf"></i> Agir pour le Territoire</h2>
+                        <h2 id="lblAgir"><i class="fa-solid fa-leaf"></i> Agir pour le Territoire</h2>
+                        <span class="info-tooltip" data-tooltip-id="actions-section"><i class="fa-solid fa-circle-question"></i></span>
                     </div>
                     <div id="adviceContainer" class="advice-grid">
                         <!-- Dynamic advice will be injected here -->
@@ -298,11 +342,13 @@
     <!-- ClimaBot Chat Interface -->
     <div id="chat-button" class="chat-launcher" title="Besoin d'aide ?">
         <i class="fa-solid fa-robot"></i>
+        <div class="chat-bubble-hint">💬 Besoin d'aide ? Parlez avec ClimaBot !</div>
     </div>
 
     <div id="chat-window" class="chat-container glass-card hidden">
         <div class="chat-header">
             <h3><i class="fa-solid fa-robot"></i> ClimaBot</h3>
+            <span class="info-tooltip" data-tooltip-id="climabot-chat" style="margin-right: auto; margin-left: 8px;"><i class="fa-solid fa-circle-question"></i></span>
             <button id="close-chat" class="clear-btn"><i class="fa-solid fa-times"></i></button>
         </div>
         <div id="chat-messages" class="chat-messages">
@@ -319,6 +365,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <div id="global-tooltip" class="global-tooltip hidden"></div>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=1.6"></script>
 </body>
 </html>
