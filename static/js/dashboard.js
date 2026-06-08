@@ -1125,8 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update New Charts (Step 2)
         renderGHGSectorChart();
-        renderSeaTempTable();
-
+        
         // Update Map Styles dynamically
         updateMapStyles();
 
@@ -1316,98 +1315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-    }
-
-    function renderSeaTempTable() {
-        const table = document.getElementById('seaTempTable');
-        if (!table) return;
-        const tbody = table.querySelector('tbody');
-        if (!tbody) return;
-
-        if (!seaTempData || seaTempData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px; color: var(--text-muted);">Données indisponibles</td></tr>';
-            return;
-        }
-
-        const match = currentCity.match(/\((\d{2,3}|2A|2B)\)/);
-        const selectedDeptCode = match ? match[1] : null;
-        const isFranceVal = isFrance(currentCity);
-        const isDom = selectedDeptCode && (selectedDeptCode.startsWith('97') || selectedDeptCode.startsWith('98'));
-
-        // Helper to retrieve display names dynamically
-        function getDeptNameByCode(code) {
-            if (code === "FRANCE") return "France (Moyenne)";
-            const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
-            if (fullName) return fullName;
-            
-            const fallbacks = {
-                "2A": "Corse-du-Sud (2A)",
-                "2B": "Haute-Corse (2B)"
-            };
-            return fallbacks[code] || `Département ${code}`;
-        }
-
-        // Sort departments numerically, placing Corsica (2A/2B) at code 20 position
-        function getSortKey(code) {
-            if (code === '2A') return 20.1;
-            if (code === '2B') return 20.2;
-            return parseFloat(code) || 999;
-        }
-
-        const uniqueCodes = [...new Set(seaTempData.map(d => String(d.DEPARTEMENT)))]
-            .filter(code => code !== "FRANCE")
-            .sort((a, b) => getSortKey(a) - getSortKey(b));
-
-        const coastalDepts = [
-            { code: "FRANCE", name: "France (Moyenne)" },
-            ...uniqueCodes.map(code => ({ code: code, name: getDeptNameByCode(code) }))
-        ];
-
-        let html = '';
-        coastalDepts.forEach(dept => {
-            const currentTemp = getSeaTempForDept(dept.code);
-            
-            // Get baseline temperature (earliest year available, e.g. 1988)
-            let baselineTemp = null;
-            if (dept.code === "FRANCE") {
-                const bData = seaTempData.filter(d => Number(d.ANNEE) === 1988 && d.TEMPERATURE !== null);
-                if (bData.length > 0) {
-                    baselineTemp = bData.reduce((s, d) => s + d.TEMPERATURE, 0) / bData.length;
-                }
-            } else {
-                const bData = seaTempData.filter(d => String(d.DEPARTEMENT) === String(dept.code) && Number(d.ANNEE) === 1988 && d.TEMPERATURE !== null);
-                if (bData.length > 0) {
-                    baselineTemp = bData[0].TEMPERATURE;
-                }
-            }
-            
-            const tempStr = currentTemp ? `<strong>${currentTemp.toFixed(2)} °C</strong>` : '--';
-            
-            let diffHtml = '<span style="color: var(--text-muted)">--</span>';
-            if (currentTemp && baselineTemp) {
-                const diff = currentTemp - baselineTemp;
-                const color = diff > 0 ? '#ef4444' : '#3b82f6';
-                const sign = diff > 0 ? '+' : '';
-                const arrow = diff > 0 ? '▲' : '▼';
-                diffHtml = `<span style="color: ${color}; font-weight: 700; font-family: var(--font-heading);">${sign}${diff.toFixed(2)} °C ${arrow}</span>`;
-            }
-
-            const isFranceRow = dept.code === "FRANCE";
-            const isHighlighted = (isFranceRow && (isFranceVal || isDom)) || (selectedDeptCode && dept.code === selectedDeptCode);
-            const rowStyle = isHighlighted
-                ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.22); font-weight: bold;' 
-                : (isFranceRow ? 'border-bottom: 2px solid var(--accent-blue); background-color: rgba(58, 140, 110, 0.08); font-weight: bold;' : 'border-bottom: 1px solid var(--glass-border);');
-
-            html += `
-                <tr style="${rowStyle} transition: background-color 0.2s;">
-                    <td style="padding: 12px 8px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-water" style="color: var(--accent-blue); margin-right: 8px; font-size: 0.8rem;"></i>${dept.name}</td>
-                    <td style="padding: 12px 8px; color: var(--text-secondary);">${tempStr}</td>
-                    <td style="padding: 12px 8px;">${diffHtml}</td>
-                </tr>
-            `;
-        });
-
-        tbody.innerHTML = html;
     }
 
     function renderAnomalyChart(data) {
