@@ -6,3 +6,5 @@ pandas
 pyarrow
 numpy
 scikit-learn
+openpyxl
+
