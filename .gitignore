@@ -21,6 +21,7 @@ data_climat/*
 !data_climat/igt_emissions.json
 !data_climat/dept_mapping.json
 !data_climat/gold_sea_temperature.parquet
+!data_climat/Deforestation_FRANCE.xlsx
 
 # Keep geojson min version needed for map
 !static/js/departements_min.geojson
