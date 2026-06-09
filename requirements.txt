@@ -8,4 +8,5 @@ numpy
 scikit-learn
 openpyxl
 flask-compress
+python-dotenv
 

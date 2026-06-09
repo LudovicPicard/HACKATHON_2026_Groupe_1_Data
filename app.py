@@ -1,9 +1,12 @@
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
 from flask_compress import Compress
+from dotenv import load_dotenv
 import pandas as pd
 import os
 import json
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -187,8 +190,13 @@ def load_deforestation():
 # Pre‑load deforestation data
 df_deforestation = load_deforestation()
 
-# Pre‑load sea temperature data
-df_sea_temp = load_data(SEA_TEMP_DATA_PATH)
+# Pre‑load and aggregate sea temperature data to optimize page load size
+df_sea_temp_raw = load_data(SEA_TEMP_DATA_PATH)
+if df_sea_temp_raw is not None:
+    # Pre-aggregate by year, department and marine zone to reduce JSON payload size from 46MB to ~190KB
+    df_sea_temp = df_sea_temp_raw.groupby(['ANNEE', 'DEPARTEMENT', 'ZONE_MARINE'])['TEMPERATURE'].mean().reset_index()
+else:
+    df_sea_temp = None
 
 
 def get_display_name(city):
