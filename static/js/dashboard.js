@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentLayer === 'sea' && seaTempLayer) {
             seaTempLayer.eachLayer(function(layer) {
                 if (layer.feature && layer.feature.properties) {
-                    const code = layer.feature.properties.code;
+                    const code = mapGeoJsonCodeToDbCode(layer.feature.properties.code);
                     const temp = getSeaTempForDept(code);
                     const hasData = temp !== null;
                     layer.setStyle({
@@ -458,6 +458,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let filtered;
         if (deptCode === "FRANCE") {
             filtered = seaTempData.filter(d => 
+                d.ANNEE >= startYear && 
+                d.ANNEE <= endYear
+            );
+        } else if (deptCode === "20") {
+            filtered = seaTempData.filter(d => 
+                (String(d.DEPARTEMENT) === "2A" || String(d.DEPARTEMENT) === "2B") && 
                 d.ANNEE >= startYear && 
                 d.ANNEE <= endYear
             );
@@ -686,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Sea Temperature Layer as GeoJSON Choropleth Map (only coastal departments colored, others grayed)
         seaTempLayer = L.geoJSON(geojsonData, {
             style: function(feature) {
-                const code = feature.properties.code;
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
                 const temp = getSeaTempForDept(code);
                 const hasData = temp !== null;
                 
@@ -699,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             },
             onEachFeature: function(feature, layer) {
-                const code = feature.properties.code;
+                const code = mapGeoJsonCodeToDbCode(feature.properties.code);
                 const fullName = Object.keys(cityToDept).find(key => key.endsWith(`(${code})`));
                 const temp = getSeaTempForDept(code);
                 
@@ -802,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
             seaTempLayer.eachLayer(function(layer) {
                 if (layer.feature && layer.feature.properties) {
                     const isActive = isCodeMatch(layer.feature.properties.code, activeCode);
-                    const code = layer.feature.properties.code;
+                    const code = mapGeoJsonCodeToDbCode(layer.feature.properties.code);
                     const temp = getSeaTempForDept(code);
                     const hasData = temp !== null;
                     layer.setStyle({
