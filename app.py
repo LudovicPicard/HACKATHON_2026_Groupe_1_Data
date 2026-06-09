@@ -1,11 +1,13 @@
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
+from flask_compress import Compress
 import pandas as pd
 import os
 import json
 
 app = Flask(__name__)
 CORS(app)
+Compress(app)
 
 # Configuration
 GOLD_DATA_PATH = "data_climat/gold_climate_indicators.parquet"

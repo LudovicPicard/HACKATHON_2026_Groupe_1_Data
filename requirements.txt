@@ -7,4 +7,5 @@ pyarrow
 numpy
 scikit-learn
 openpyxl
+flask-compress
 

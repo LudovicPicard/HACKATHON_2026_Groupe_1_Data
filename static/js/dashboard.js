@@ -122,13 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/deforestation').then(res => res.json()),
         fetch('/api/cities').then(res => res.json()),
         fetch('/api/data').then(res => res.json()),
-        fetch('/api/projections').then(res => res.json()),
         fetch('/api/performance').then(res => res.json()),
         fetch('/api/igt').then(res => res.json()),
         fetch('/api/departments').then(res => res.json()),
         fetch('/static/js/departements_min.geojson').then(res => res.json()),
         fetch('/api/sea-temperature').then(res => res.json())
-    ]).then(([deforRaw, cities, data, projections, performance, igt, departments, geojsonData, seaTempRaw]) => {
+    ]).then(([deforRaw, cities, data, performance, igt, departments, geojsonData, seaTempRaw]) => {
         // Transform deforestation data into lookup by department name
         const deforLookup = {};
         deforRaw.forEach(item => {
@@ -164,11 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        console.log("Données chargées:", { cities: cities.length, data: data.length, projections: projections.length, performance: performance.length, igt: Object.keys(igt).length });
+        console.log("Données chargées:", { cities: cities.length, data: data.length, performance: performance.length, igt: Object.keys(igt).length });
         citySelect.innerHTML = '<option value="">Sélectionnez un département...</option>' + 
                                cities.map(city => `<option value="${city}">${getDisplayName(city)}</option>`).join('');
         allData = data;
-        projectionData = projections;
+        projectionData = []; // Initialize empty
         performanceData = performance;
         igtData = igt;
 
@@ -183,6 +182,39 @@ document.addEventListener('DOMContentLoaded', () => {
             highlightMarker("France (sans Outre-mer)");
             showMapInfo("France (sans Outre-mer)", currentLayer);
         }
+
+        // Asynchronously load heavy projections in the background after main dashboard rendering
+        fetch('/api/projections')
+            .then(res => res.json())
+            .then(projections => {
+                projectionData = projections;
+                console.log("Projections chargées en arrière-plan:", projectionData.length);
+                
+                // Hide loading overlay
+                const loadingEl = document.getElementById('projectionsLoading');
+                if (loadingEl) {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(() => loadingEl.remove(), 300);
+                }
+
+                // Trigger a dashboard update if a city is currently selected, to render the projections chart
+                if (currentCity) {
+                    const cityProjections = (projectionData || []).filter(d => 
+                        d.VILLE === currentCity && 
+                        String(d.MODEL_IA) === String(currentModel) && 
+                        String(d.FRAME) === String(currentFrame)
+                    ).sort((a,b) => Number(a.ANNEE) - Number(b.ANNEE));
+                    const filteredCityData = allData.filter(d => d.VILLE === currentCity);
+                    renderProjectionsChart(filteredCityData, cityProjections);
+                }
+            })
+            .catch(err => {
+                console.error("Erreur de chargement des projections:", err);
+                const loadingEl = document.getElementById('projectionsLoading');
+                if (loadingEl) {
+                    loadingEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; margin-right: 8px;"></i> Erreur de chargement des simulations`;
+                }
+            });
     })
     .catch(err => {
         console.error("Erreur critique chargement dashboard:", err);
