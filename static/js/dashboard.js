@@ -1421,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectionsChart) projectionsChart.destroy();
 
         if (!projData || projData.length === 0) {
-            console.warn("Pas de données de projection pour le graphique. City:", city, "Model:", currentModel, "Frame:", currentFrame);
+            console.warn("Pas de données de projection pour le graphique. City:", currentCity, "Model:", currentModel, "Frame:", currentFrame);
             // On peut quand même afficher l'historique seul ou vider le chart
             if (projectionsChart) projectionsChart.destroy();
             return;
