@@ -1,8 +1,11 @@
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
+from dotenv import load_dotenv
 import pandas as pd
 import os
 import json
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -85,7 +88,7 @@ def get_deforestation():
     """Return per‑department tree‑cover loss for the most recent year as JSON."""
     if df_deforestation is not None:
         return Response(df_deforestation.to_json(orient='records'), mimetype='application/json')
-    return jsonify({"error": "Deforestation data not found"}), 404
+    return Response('[]', mimetype='application/json')
 
 @app.route('/api/sea-temperature')
 def get_sea_temperature():
